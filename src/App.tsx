@@ -72,6 +72,12 @@ export default function App() {
   const [isFeeDepositModalOpen, setIsFeeDepositModalOpen] = useState(false);
   const [targetStudentForFee, setTargetStudentForFee] = useState<string | undefined>(undefined);
   const [targetExamForResults, setTargetExamForResults] = useState<string | undefined>(undefined);
+  const [targetFeesTab, setTargetFeesTab] = useState<'deposits' | 'dues' | 'structure'>('deposits');
+
+  const handleNavigateToFeeStructure = () => {
+    setTargetFeesTab('structure');
+    setActiveTab('fees');
+  };
 
   // Initial Load from LocalStorage
   useEffect(() => {
@@ -323,6 +329,7 @@ export default function App() {
         examCount={exams.length}
         resultsCount={results.length}
         feeDepositsCount={deposits.length}
+        attendanceRecordsCount={attendance.length}
       />
 
       {/* Main Content Area */}
@@ -337,10 +344,12 @@ export default function App() {
             results={results}
             deposits={deposits}
             timetable={timetable}
+            attendance={attendance}
             onNavigateTab={setActiveTab}
             onNavigate={setActiveTab}
             onOpenAdmissionModal={handleQuickNewAdmission}
             onOpenFeeDepositModal={handleQuickFeeDeposit}
+            onNavigateToFeeStructure={handleNavigateToFeeStructure}
             onViewReceipt={(dep) => setSelectedReceiptDeposit(dep)}
             currentAdmin={currentAdmin}
             onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
@@ -399,6 +408,19 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'attendance' && (
+          <AttendanceView
+            students={students}
+            subjects={subjects}
+            faculty={faculty}
+            attendance={attendance}
+            onSaveAttendance={handleSaveAttendance}
+            currentAdmin={currentAdmin}
+            onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+            onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+          />
+        )}
+
         {activeTab === 'exams' && (
           <ExamsView
             exams={exams}
@@ -439,6 +461,7 @@ export default function App() {
             isDepositModalOpen={isFeeDepositModalOpen}
             setIsDepositModalOpen={setIsFeeDepositModalOpen}
             preselectedStudentId={targetStudentForFee}
+            initialActiveTab={targetFeesTab}
             currentAdmin={currentAdmin}
             onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
             onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
@@ -454,6 +477,7 @@ export default function App() {
             results={results}
             deposits={deposits}
             timetable={timetable}
+            attendance={attendance}
             onOpenFeeDepositModal={(stId) => handleQuickFeeDeposit(stId)}
             onViewReceipt={(dep) => setSelectedReceiptDeposit(dep)}
             onViewReportCard={(res) => setSelectedReportCardResult(res)}

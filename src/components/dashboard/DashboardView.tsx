@@ -7,6 +7,7 @@ import {
   ExamResult,
   FeeDeposit,
   TimetableSlot,
+  AttendanceRecord,
   ClassLevel,
   AdminUser,
   NavigationTab,
@@ -18,6 +19,7 @@ import {
   getEstimatedStorageUsage,
   AppStateData,
 } from '../../utils/storage';
+import { PendingFeeAlertSection } from './PendingFeeAlertSection';
 import {
   Users,
   UserPlus,
@@ -26,6 +28,7 @@ import {
   CreditCard,
   AlertTriangle,
   Calendar,
+  CalendarCheck,
   ArrowUpRight,
   Sparkles,
   TrendingUp,
@@ -52,6 +55,7 @@ interface DashboardViewProps {
   results: ExamResult[];
   deposits: FeeDeposit[];
   timetable?: TimetableSlot[];
+  attendance?: AttendanceRecord[];
   onNavigateTab?: (tab: NavigationTab) => void;
   onNavigate?: (tab: NavigationTab) => void;
   onOpenAdmissionModal: () => void;
@@ -73,6 +77,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   results,
   deposits,
   timetable = [],
+  attendance = [],
   onNavigateTab,
   onNavigate,
   onOpenAdmissionModal,
@@ -110,6 +115,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         results,
         deposits,
         timetable,
+        attendance,
       };
 
       const result = exportDatabaseBackup(appState);
@@ -142,11 +148,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           parsedState.exams.length +
           parsedState.results.length +
           parsedState.deposits.length +
-          parsedState.timetable.length;
+          parsedState.timetable.length +
+          (parsedState.attendance?.length || 0);
 
         if (
           confirm(
-            `Restore database from backup?\n\nRecords to import:\n• ${parsedState.students.length} Students\n• ${parsedState.faculty.length} Faculty\n• ${parsedState.subjects.length} Subjects\n• ${parsedState.exams.length} Exams\n• ${parsedState.results.length} Exam Results\n• ${parsedState.deposits.length} Fee Receipts\n• ${parsedState.timetable.length} Timetable Slots\n\nTotal: ${totalRecords} records. This will overwrite current session state.`
+            `Restore database from backup?\n\nRecords to import:\n• ${parsedState.students.length} Students\n• ${parsedState.faculty.length} Faculty\n• ${parsedState.subjects.length} Subjects\n• ${parsedState.exams.length} Exams\n• ${parsedState.results.length} Exam Results\n• ${parsedState.deposits.length} Fee Receipts\n• ${parsedState.timetable.length} Timetable Slots\n• ${parsedState.attendance?.length || 0} Attendance Records\n\nTotal: ${totalRecords} records. This will overwrite current session state.`
           )
         ) {
           if (onRestoreData) {
@@ -243,6 +250,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
 
             <button
+              onClick={() => navigate('attendance')}
+              id="dashboard-attendance-btn"
+              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <CalendarCheck className="w-4 h-4" />
+              <span>Daily Attendance</span>
+            </button>
+
+            <button
               onClick={() => onOpenFeeDepositModal()}
               id="dashboard-deposit-fee-btn"
               className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
@@ -254,8 +270,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Top 4 KPI Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {/* Top 5 KPI Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
         
         {/* Total Students */}
         <div
@@ -272,7 +288,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="text-3xl font-black text-slate-900">{students.length}</div>
             <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
               <span className="text-emerald-600 font-semibold flex items-center">
-                 Class 5 to 12
+                 Class 1 to 12
               </span>
               active batches
             </p>
@@ -298,13 +314,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
+        {/* Daily Attendance & Register */}
+        <div
+          onClick={() => navigate('attendance')}
+          className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Daily Attendance</span>
+            <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <CalendarCheck className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-3xl font-black text-emerald-700">{attendance.length}</div>
+            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+              <span className="text-emerald-700 font-semibold">
+                {new Set(attendance.map((a) => a.date)).size} Lecture Days
+              </span>
+              logged
+            </p>
+          </div>
+        </div>
+
         {/* Total Fees Collected */}
         <div
           onClick={() => navigate('fees')}
           className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Fee Collections</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Collections</span>
             <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <CreditCard className="w-5 h-5" />
             </div>
@@ -312,7 +350,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="mt-3">
             <div className="text-2xl sm:text-3xl font-black text-emerald-700">{formatCurrency(totalCollected)}</div>
             <p className="text-xs text-slate-500 mt-1">
-              <strong className="text-slate-800 font-semibold">{deposits.length}</strong> verified receipts issued
+              <strong className="text-slate-800 font-semibold">{deposits.length}</strong> receipts issued
             </p>
           </div>
         </div>
@@ -331,7 +369,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="mt-3">
             <div className="text-2xl sm:text-3xl font-black text-amber-700">{formatCurrency(totalDues)}</div>
             <p className="text-xs text-amber-600 font-semibold mt-1">
-              {studentsWithDues.length} students with pending installments
+              {studentsWithDues.length} students with dues
             </p>
           </div>
         </div>
@@ -378,6 +416,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           })}
         </div>
       </div>
+
+      {/* Pending Fee Alert & Aging Defaulters Section */}
+      <PendingFeeAlertSection
+        students={students}
+        deposits={deposits}
+        subjects={subjects}
+        onOpenFeeDepositModal={onOpenFeeDepositModal}
+        onNavigateToFees={() => navigate('fees')}
+        currentAdmin={currentAdmin}
+      />
 
       {/* 2-Column Section: Upcoming Exams & Recent Admissions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

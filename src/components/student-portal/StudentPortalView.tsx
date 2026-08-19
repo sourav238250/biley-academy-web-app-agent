@@ -535,7 +535,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
               <span className="text-[10px] font-bold uppercase text-rose-600">Outstanding Due</span>
               <p className="text-base font-bold text-rose-700 mt-1">{formatCurrency(feeSummary.dueAmount)}</p>
-              <p className="text-[10px] text-slate-500">Status: {feeSummary.paymentStatus}</p>
+              <p className="text-[10px] text-slate-500">Status: {feeSummary.feeStatus}</p>
             </div>
           </div>
 

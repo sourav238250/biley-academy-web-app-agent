@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Student,
   FeeDeposit,
@@ -38,6 +38,14 @@ import {
   DollarSign,
   Send,
   Lock,
+  Download,
+  Calculator,
+  FileSpreadsheet,
+  Edit3,
+  SlidersHorizontal,
+  Sparkles,
+  RefreshCw,
+  Info,
 } from 'lucide-react';
 
 interface FeesViewProps {
@@ -49,6 +57,7 @@ interface FeesViewProps {
   isDepositModalOpen: boolean;
   setIsDepositModalOpen: (open: boolean) => void;
   preselectedStudentId?: string;
+  initialActiveTab?: 'deposits' | 'dues' | 'structure';
   currentAdmin?: AdminUser | null;
   onOpenAdminLogin?: () => void;
   onOpenPermissionsMatrix?: () => void;
@@ -63,14 +72,56 @@ export const FeesView: React.FC<FeesViewProps> = ({
   isDepositModalOpen,
   setIsDepositModalOpen,
   preselectedStudentId,
+  initialActiveTab,
   currentAdmin,
   onOpenAdminLogin,
   onOpenPermissionsMatrix,
 }) => {
   const auth = evaluateSectionAuthorization(currentAdmin, 'fees');
-  const [activeTab, setActiveTab] = useState<'deposits' | 'dues' | 'structure'>('deposits');
+  const [activeTab, setActiveTab] = useState<'deposits' | 'dues' | 'structure'>(
+    initialActiveTab || 'deposits'
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClassFilter, setSelectedClassFilter] = useState('all');
+
+  // Sync initial tab when changed from props
+  useEffect(() => {
+    if (initialActiveTab) {
+      setActiveTab(initialActiveTab);
+    }
+  }, [initialActiveTab]);
+
+  // Fee Structures State with Local Persistence
+  const [feeStructures, setFeeStructures] = useState<Record<string, FeeStructure>>(() => {
+    try {
+      const saved = localStorage.getItem('biley_academy_custom_fee_structure_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load fee structures:', e);
+    }
+    return DEFAULT_FEE_STRUCTURE;
+  });
+
+  // Fee Structure UI Filter & Search
+  const [structureCategoryFilter, setStructureCategoryFilter] = useState<
+    'ALL' | 'PRIMARY' | 'MIDDLE' | 'SECONDARY' | 'SENIOR' | 'SCIENCE' | 'COMMERCE' | 'ARTS'
+  >('ALL');
+
+  // Interactive Fee Calculator State
+  const [calcClass, setCalcClass] = useState<ClassLevel>('10');
+  const [calcStream, setCalcStream] = useState<string>('General');
+  const [calcMode, setCalcMode] = useState<'full' | 'perSubject'>('full');
+  const [calcSubjectCount, setCalcSubjectCount] = useState<number>(4);
+  const [calcScholarship, setCalcScholarship] = useState<number>(0);
+
+  // Edit Fee Rate Modal State
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editAdmissionFee, setEditAdmissionFee] = useState<number>(0);
+  const [editMonthlyFee, setEditMonthlyFee] = useState<number>(0);
+  const [editPerSubjectFee, setEditPerSubjectFee] = useState<number>(0);
+  const [editExamFee, setEditExamFee] = useState<number>(0);
+  const [editMaterialsFee, setEditMaterialsFee] = useState<number>(0);
+  const [structureSuccessNotice, setStructureSuccessNotice] = useState<string | null>(null);
 
   // Form State for Fee Deposit Modal
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
@@ -84,13 +135,15 @@ export const FeesView: React.FC<FeesViewProps> = ({
   const [collectedBy, setCollectedBy] = useState<string>('Accounts Dept - S. Mukherjee');
   const [remarks, setRemarks] = useState<string>('Tuition installment received with receipt issued.');
 
-  const handleOpenDepositModal = (studentId?: string) => {
+  const handleOpenDepositModal = (studentId?: string, customAmount?: number) => {
     const sId = studentId || preselectedStudentId || students[0]?.id || '';
     setSelectedStudentId(sId);
     
     // Auto-calculate suggested monthly amount
     const targetStudent = students.find((s) => s.id === sId);
-    if (targetStudent) {
+    if (customAmount) {
+      setAmountPaid(customAmount);
+    } else if (targetStudent) {
       const summary = computeStudentFeeSummary(targetStudent, deposits);
       setAmountPaid(summary.dueAmount > 0 ? Math.min(summary.dueAmount, 5000) : 2500);
     }
@@ -138,6 +191,99 @@ export const FeesView: React.FC<FeesViewProps> = ({
 
     // Auto show receipt
     onViewReceipt(newDeposit);
+  };
+
+  // Fee Structure Handlers
+  const handleExportFeeScheduleCSV = () => {
+    const headers = [
+      'Class Level',
+      'Stream Track',
+      'Admission Fee (INR)',
+      'Monthly Tuition Fee (INR)',
+      'Per Subject Fee (INR)',
+      'Exam Fee Per Term (INR)',
+      'Study Materials Fee (INR)',
+      'Total Estimated Annual Fee (INR)',
+    ];
+
+    const rows = Object.values(feeStructures).map((st) => {
+      const estAnnual =
+        st.admissionFee +
+        st.monthlyTuitionFee * 12 +
+        st.examFeePerTerm * 2 +
+        st.materialsFee;
+      return [
+        `"Class ${st.classLevel}"`,
+        `"${st.stream}"`,
+        st.admissionFee,
+        st.monthlyTuitionFee,
+        st.perSubjectMonthlyFee || 0,
+        st.examFeePerTerm,
+        st.materialsFee,
+        estAnnual,
+      ].join(',');
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute(
+      'download',
+      `biley_academy_active_fee_structure_${new Date().toISOString().split('T')[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleResetFeeStructures = () => {
+    if (window.confirm('Reset all class fee structures back to academy standard defaults?')) {
+      setFeeStructures(DEFAULT_FEE_STRUCTURE);
+      localStorage.removeItem('biley_academy_custom_fee_structure_v1');
+      setStructureSuccessNotice('Fee structures successfully reset to Academy standard rates.');
+      setTimeout(() => setStructureSuccessNotice(null), 4000);
+    }
+  };
+
+  const handleStartEditStructure = (key: string, st: FeeStructure) => {
+    setEditingKey(key);
+    setEditAdmissionFee(st.admissionFee);
+    setEditMonthlyFee(st.monthlyTuitionFee);
+    setEditPerSubjectFee(st.perSubjectMonthlyFee || 300);
+    setEditExamFee(st.examFeePerTerm);
+    setEditMaterialsFee(st.materialsFee);
+  };
+
+  const handleSaveStructureEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingKey) return;
+    const current = feeStructures[editingKey];
+    if (!current) return;
+
+    const updated: FeeStructure = {
+      ...current,
+      admissionFee: Number(editAdmissionFee),
+      monthlyTuitionFee: Number(editMonthlyFee),
+      perSubjectMonthlyFee: Number(editPerSubjectFee),
+      examFeePerTerm: Number(editExamFee),
+      materialsFee: Number(editMaterialsFee),
+    };
+
+    const updatedMap = {
+      ...feeStructures,
+      [editingKey]: updated,
+    };
+
+    setFeeStructures(updatedMap);
+    try {
+      localStorage.setItem('biley_academy_custom_fee_structure_v1', JSON.stringify(updatedMap));
+    } catch (err) {
+      console.error('Failed to save custom fee structures:', err);
+    }
+    setEditingKey(null);
+    setStructureSuccessNotice(`Rates for Class ${current.classLevel} (${current.stream}) updated successfully!`);
+    setTimeout(() => setStructureSuccessNotice(null), 4000);
   };
 
   // Calculations for Dues & Collections
@@ -192,6 +338,7 @@ export const FeesView: React.FC<FeesViewProps> = ({
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
             <button
               onClick={() => setActiveTab('deposits')}
+              id="fee-deposits-tab-btn"
               className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
                 activeTab === 'deposits'
                   ? 'bg-slate-900 text-white shadow-xs'
@@ -202,6 +349,7 @@ export const FeesView: React.FC<FeesViewProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('dues')}
+              id="fee-dues-tab-btn"
               className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
                 activeTab === 'dues'
                   ? 'bg-slate-900 text-white shadow-xs'
@@ -212,13 +360,18 @@ export const FeesView: React.FC<FeesViewProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('structure')}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+              id="fee-structure-tab-btn"
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'structure'
-                  ? 'bg-slate-900 text-white shadow-xs'
+                  ? 'bg-slate-900 text-amber-300 shadow-xs border border-slate-800'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Fee Structure
+              <Layers className="w-3.5 h-3.5" />
+              <span>Active Fee Structure</span>
+              <span className="text-[10px] bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded-full font-extrabold">
+                12 Classes
+              </span>
             </button>
           </div>
 
@@ -412,9 +565,66 @@ export const FeesView: React.FC<FeesViewProps> = ({
 
       {activeTab === 'dues' && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden p-6 space-y-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">Outstanding Fees & Defaulters Tracker</h3>
-            <p className="text-xs text-slate-500">Students with pending annual tuition, admission or exam dues</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Outstanding Fees &amp; Defaulters Tracker</h3>
+              <p className="text-xs text-slate-500">Students with pending annual tuition, admission or exam dues</p>
+            </div>
+            {defaultersList.length > 0 && (
+              <button
+                onClick={() => {
+                  const escapeCsv = (val: string | number | undefined | null) => {
+                    if (val === undefined || val === null) return '""';
+                    const s = String(val).replace(/"/g, '""');
+                    return `"${s}"`;
+                  };
+                  const headers = [
+                    'Student ID',
+                    'Roll No',
+                    'Student Name',
+                    'Class Level',
+                    'Stream',
+                    'Guardian Name',
+                    'Contact Number',
+                    'Email',
+                    'Net Annual Fee (INR)',
+                    'Total Paid (INR)',
+                    'Outstanding Due (INR)',
+                    'Fee Status',
+                    'Scholarship Percent',
+                  ];
+                  const rows = defaultersList.map(({ student, summary }) => [
+                    escapeCsv(student.id),
+                    escapeCsv(student.rollNo),
+                    escapeCsv(student.name),
+                    escapeCsv(`Class ${student.classLevel}`),
+                    escapeCsv(student.stream),
+                    escapeCsv(student.guardianName),
+                    escapeCsv(student.contactNumber),
+                    escapeCsv(student.email),
+                    summary.netPayable,
+                    summary.totalPaid,
+                    summary.dueAmount,
+                    escapeCsv(summary.feeStatus),
+                    student.scholarshipPercent || 0,
+                  ].join(','));
+                  const csvContent = [headers.join(','), ...rows].join('\r\n');
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.setAttribute('href', url);
+                  link.setAttribute('download', `biley_academy_fee_dues_${new Date().toISOString().split('T')[0]}.csv`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export Dues CSV ({defaultersList.length})</span>
+              </button>
+            )}
           </div>
 
           {defaultersList.length === 0 ? (
@@ -495,52 +705,437 @@ export const FeesView: React.FC<FeesViewProps> = ({
       )}
 
       {activeTab === 'structure' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">Biley Academy Official Fee Structure (Classes 1 to 12)</h3>
-            <p className="text-xs text-slate-500">Standard annual fees breakdown by Class & Stream</p>
+        <div className="space-y-6">
+          
+          {/* Active Fee Policy Header Card */}
+          <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md relative overflow-hidden border border-slate-800">
+            <div className="absolute right-0 top-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+            
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2.5 py-1 bg-amber-400 text-slate-950 text-[11px] font-extrabold rounded-full flex items-center gap-1.5 uppercase tracking-wider">
+                    <Sparkles className="w-3 h-3" />
+                    Active Fee Policy (2025–2026)
+                  </span>
+                  <span className="px-2.5 py-1 bg-slate-800 text-slate-300 text-[11px] font-semibold rounded-full border border-slate-700">
+                    Classes 1 to 12 Covered
+                  </span>
+                  <span className="px-2.5 py-1 bg-emerald-950 text-emerald-300 text-[11px] font-semibold rounded-full border border-emerald-800/60">
+                    Standard INR (₹)
+                  </span>
+                </div>
+                <h3 className="text-xl font-black text-white tracking-tight">
+                  Biley Academy Official Fee Structure & Rate Card
+                </h3>
+                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                  Transparent, structured fee schedule covering Admission, Monthly Tuition, Examination cycles, and Lab/Study Material packages for all classes and senior secondary academic streams.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  onClick={handleExportFeeScheduleCSV}
+                  id="export-fee-structure-csv-btn"
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Export Schedule CSV</span>
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  id="print-fee-structure-btn"
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Printer className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Print Schedule</span>
+                </button>
+                {auth.canWrite && (
+                  <button
+                    onClick={handleResetFeeStructures}
+                    id="reset-fee-structure-btn"
+                    title="Reset to Academy Standard Defaults"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Notification alert */}
+            {structureSuccessNotice && (
+              <div className="mt-4 p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-200 text-xs font-medium flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{structureSuccessNotice}</span>
+              </div>
+            )}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-slate-900 text-white uppercase text-[10px] font-bold tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Class Level</th>
-                  <th className="py-3 px-4">Stream Track</th>
-                  <th className="py-3 px-4 text-right">Admission Fee</th>
-                  <th className="py-3 px-4 text-right">Monthly Tuition</th>
-                  <th className="py-3 px-4 text-right">Exam Fee / Term</th>
-                  <th className="py-3 px-4 text-right">Study Materials</th>
-                  <th className="py-3 px-4 text-right">Total Est. Annual</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {Object.entries(DEFAULT_FEE_STRUCTURE).map(([key, st]) => {
-                  const estAnnual =
-                    st.admissionFee +
-                    st.monthlyTuitionFee * 12 +
-                    st.examFeePerTerm * 2 +
-                    st.materialsFee;
+          {/* Interactive Live Fee Calculator & Admission Estimator */}
+          <div className="bg-gradient-to-br from-amber-50/70 via-white to-slate-50 rounded-2xl border border-amber-200/80 shadow-xs p-5 sm:p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-amber-500 text-slate-950 rounded-xl font-bold">
+                  <Calculator className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm sm:text-base font-extrabold text-slate-900">
+                    Interactive Live Fee & Admission Estimator
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Instantly project monthly tuition, annual package, and scholarship concessions for any prospective student.
+                  </p>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full w-fit">
+                Live Dynamic Calculator
+              </span>
+            </div>
 
-                  return (
-                    <tr key={key} className="hover:bg-slate-50">
-                      <td className="py-3 px-4 font-bold text-slate-900">Class {st.classLevel}</td>
-                      <td className="py-3 px-4 font-medium text-slate-700">{st.stream}</td>
-                      <td className="py-3 px-4 text-right text-slate-700">{formatCurrency(st.admissionFee)}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-emerald-700">
-                        {formatCurrency(st.monthlyTuitionFee)}/mo
-                      </td>
-                      <td className="py-3 px-4 text-right text-slate-700">{formatCurrency(st.examFeePerTerm)}</td>
-                      <td className="py-3 px-4 text-right text-slate-700">{formatCurrency(st.materialsFee)}</td>
-                      <td className="py-3 px-4 text-right font-black text-slate-900">
-                        {formatCurrency(estAnnual)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            {/* Calculator Controls */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div>
+                <label className="block text-slate-700 font-bold text-xs mb-1.5">Class Level</label>
+                <select
+                  value={calcClass}
+                  onChange={(e) => {
+                    const newClass = e.target.value as ClassLevel;
+                    setCalcClass(newClass);
+                    if (['11', '12'].includes(newClass)) {
+                      setCalcStream('Science');
+                    } else {
+                      setCalcStream('General');
+                    }
+                  }}
+                  id="calc-class-select"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                >
+                  {CLASS_LEVELS.map((c) => (
+                    <option key={c} value={c}>
+                      Class {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold text-xs mb-1.5">Academic Stream</label>
+                <select
+                  value={calcStream}
+                  onChange={(e) => setCalcStream(e.target.value)}
+                  disabled={!['11', '12'].includes(calcClass)}
+                  id="calc-stream-select"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                >
+                  {['11', '12'].includes(calcClass) ? (
+                    <>
+                      <option value="Science">Science (PCB / PCM)</option>
+                      <option value="Commerce">Commerce</option>
+                      <option value="Arts">Arts / Humanities</option>
+                      <option value="General">General Track</option>
+                    </>
+                  ) : (
+                    <option value="General">General Foundation</option>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold text-xs mb-1.5">Enrollment Package</label>
+                <div className="flex bg-slate-200 p-1 rounded-xl gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setCalcMode('full')}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      calcMode === 'full'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Full Combo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCalcMode('perSubject')}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      calcMode === 'perSubject'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Per-Subject ({calcSubjectCount})
+                  </button>
+                </div>
+                {calcMode === 'perSubject' && (
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-slate-500">Subjects:</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5, 6].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => setCalcSubjectCount(num)}
+                          className={`w-6 h-6 rounded-md text-[10px] font-bold cursor-pointer ${
+                            calcSubjectCount === num
+                              ? 'bg-amber-500 text-slate-950'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold text-xs mb-1.5">Merit Scholarship</label>
+                <select
+                  value={calcScholarship}
+                  onChange={(e) => setCalcScholarship(Number(e.target.value))}
+                  id="calc-scholarship-select"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                >
+                  <option value={0}>0% - Standard Rate</option>
+                  <option value={10}>10% - Early Bird / Sibling</option>
+                  <option value={25}>25% - Academic Merit</option>
+                  <option value={50}>50% - High Distinction</option>
+                  <option value={100}>100% - Full Academy Scholarship</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Calculated Breakdown Display */}
+            {(() => {
+              const structKey = `${calcClass}-${calcStream}`;
+              const st = feeStructures[structKey] || feeStructures[`${calcClass}-General`] || Object.values(feeStructures)[0];
+              const monthlyRate =
+                calcMode === 'full'
+                  ? st.monthlyTuitionFee
+                  : (st.perSubjectMonthlyFee || 300) * calcSubjectCount;
+              const annualTuition = monthlyRate * 12;
+              const admissionFee = st.admissionFee;
+              const examFees = st.examFeePerTerm * 2;
+              const materialsFee = st.materialsFee;
+              const grossAnnual = admissionFee + annualTuition + examFees + materialsFee;
+              const scholarshipSavings = Math.round((grossAnnual * calcScholarship) / 100);
+              const netAnnual = grossAnnual - scholarshipSavings;
+
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Monthly Tuition</span>
+                    <p className="text-base font-extrabold text-emerald-700 mt-0.5">
+                      {formatCurrency(monthlyRate)}
+                      <span className="text-[10px] text-slate-400 font-normal">/mo</span>
+                    </p>
+                    <span className="text-[9px] text-slate-400">12 installments</span>
+                  </div>
+
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">One-time Admission</span>
+                    <p className="text-base font-extrabold text-slate-800 mt-0.5">
+                      {formatCurrency(admissionFee)}
+                    </p>
+                    <span className="text-[9px] text-slate-400">Enrollment & Reg.</span>
+                  </div>
+
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Exam Cycles</span>
+                    <p className="text-base font-extrabold text-slate-800 mt-0.5">
+                      {formatCurrency(examFees)}
+                    </p>
+                    <span className="text-[9px] text-slate-400">2 Terms (Mid & Final)</span>
+                  </div>
+
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Notes & Materials</span>
+                    <p className="text-base font-extrabold text-slate-800 mt-0.5">
+                      {formatCurrency(materialsFee)}
+                    </p>
+                    <span className="text-[9px] text-slate-400">Annual Kit & Modules</span>
+                  </div>
+
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Scholarship Concession</span>
+                    <p className="text-base font-extrabold text-rose-600 mt-0.5">
+                      {scholarshipSavings > 0 ? `-${formatCurrency(scholarshipSavings)}` : '₹0'}
+                    </p>
+                    <span className="text-[9px] text-slate-400">{calcScholarship}% Concession</span>
+                  </div>
+
+                  <div className="p-3 bg-slate-900 text-white rounded-xl border border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-amber-400 block">Net Est. Annual</span>
+                      <p className="text-base font-black text-white mt-0.5">
+                        {formatCurrency(netAnnual)}
+                      </p>
+                    </div>
+                    {auth.canWrite && (
+                      <button
+                        onClick={() => handleOpenDepositModal(undefined, monthlyRate)}
+                        className="mt-1 px-2 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black rounded-lg transition-colors cursor-pointer text-center"
+                      >
+                        Collect This Rate
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
+
+          {/* Fee Schedule Table Container */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
+            
+            {/* Table Filters Toolbar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">
+                  Standard Class Fee Matrix (Grades 1 to 12)
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Click 'Edit Rates' to modify amounts or 'Estimate / Deposit' to collect fees for that class.
+                </p>
+              </div>
+
+              {/* Category Segment Filter */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+                {[
+                  { id: 'ALL', label: 'All Classes' },
+                  { id: 'PRIMARY', label: 'Primary (1-4)' },
+                  { id: 'MIDDLE', label: 'Middle (5-8)' },
+                  { id: 'SECONDARY', label: 'Secondary (9-10)' },
+                  { id: 'SENIOR', label: 'Senior (11-12)' },
+                  { id: 'SCIENCE', label: 'Science' },
+                  { id: 'COMMERCE', label: 'Commerce' },
+                  { id: 'ARTS', label: 'Arts' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setStructureCategoryFilter(tab.id as any)}
+                    className={`px-2.5 py-1 text-xs font-semibold rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                      structureCategoryFilter === tab.id
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-900 text-white uppercase text-[10px] font-bold tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">Class Level</th>
+                    <th className="py-3 px-4">Stream Track</th>
+                    <th className="py-3 px-4 text-right">Admission Fee</th>
+                    <th className="py-3 px-4 text-right">Monthly Tuition</th>
+                    <th className="py-3 px-4 text-right">Per-Subject Rate</th>
+                    <th className="py-3 px-4 text-right">Exam Fee / Term</th>
+                    <th className="py-3 px-4 text-right">Study Materials</th>
+                    <th className="py-3 px-4 text-right">Est. Annual Total</th>
+                    <th className="py-3 px-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {Object.entries(feeStructures)
+                    .filter(([key, st]) => {
+                      const classNum = parseInt(st.classLevel, 10);
+                      if (structureCategoryFilter === 'PRIMARY') return classNum >= 1 && classNum <= 4;
+                      if (structureCategoryFilter === 'MIDDLE') return classNum >= 5 && classNum <= 8;
+                      if (structureCategoryFilter === 'SECONDARY') return classNum >= 9 && classNum <= 10;
+                      if (structureCategoryFilter === 'SENIOR') return classNum >= 11 && classNum <= 12;
+                      if (structureCategoryFilter === 'SCIENCE') return st.stream === 'Science';
+                      if (structureCategoryFilter === 'COMMERCE') return st.stream === 'Commerce';
+                      if (structureCategoryFilter === 'ARTS') return st.stream === 'Arts';
+                      return true;
+                    })
+                    .map(([key, st]) => {
+                      const estAnnual =
+                        st.admissionFee +
+                        st.monthlyTuitionFee * 12 +
+                        st.examFeePerTerm * 2 +
+                        st.materialsFee;
+
+                      return (
+                        <tr key={key} className="hover:bg-amber-50/40 transition-colors">
+                          <td className="py-3 px-4 font-black text-slate-900">
+                            Class {st.classLevel}
+                          </td>
+                          <td className="py-3 px-4 font-semibold text-slate-700">
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[11px] ${
+                                st.stream === 'Science'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : st.stream === 'Commerce'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : st.stream === 'Arts'
+                                  ? 'bg-purple-100 text-purple-800'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}
+                            >
+                              {st.stream}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right text-slate-700 font-medium">
+                            {formatCurrency(st.admissionFee)}
+                          </td>
+                          <td className="py-3 px-4 text-right font-bold text-emerald-700">
+                            {formatCurrency(st.monthlyTuitionFee)}/mo
+                          </td>
+                          <td className="py-3 px-4 text-right text-slate-600">
+                            {st.perSubjectMonthlyFee ? `${formatCurrency(st.perSubjectMonthlyFee)}/mo` : '—'}
+                          </td>
+                          <td className="py-3 px-4 text-right text-slate-700">
+                            {formatCurrency(st.examFeePerTerm)}
+                          </td>
+                          <td className="py-3 px-4 text-right text-slate-700">
+                            {formatCurrency(st.materialsFee)}
+                          </td>
+                          <td className="py-3 px-4 text-right font-black text-slate-950">
+                            {formatCurrency(estAnnual)}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setCalcClass(st.classLevel);
+                                  setCalcStream(st.stream);
+                                  window.scrollTo({ top: 300, behavior: 'smooth' });
+                                }}
+                                title="Load into live fee calculator"
+                                className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-md font-bold text-[10px] transition-colors cursor-pointer"
+                              >
+                                Estimate
+                              </button>
+                              {auth.canWrite && (
+                                <button
+                                  onClick={() => handleStartEditStructure(key, st)}
+                                  title="Edit fee amounts for this class"
+                                  className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-medium text-[10px] transition-colors cursor-pointer flex items-center gap-0.5"
+                                >
+                                  <Edit3 className="w-2.5 h-2.5" />
+                                  <span>Edit</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
         </div>
       )}
 
@@ -709,6 +1304,143 @@ export const FeesView: React.FC<FeesViewProps> = ({
                   className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
                 >
                   Generate Official Fee Receipt
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* Edit Class Fee Structure Modal */}
+      {editingKey && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden my-8 border border-slate-200">
+            
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-amber-400" />
+                <div>
+                  <h3 className="font-bold text-base">
+                    Edit Fee Rates: Class {feeStructures[editingKey]?.classLevel} ({feeStructures[editingKey]?.stream})
+                  </h3>
+                  <p className="text-[11px] text-slate-300">
+                    Adjust standard session charges for this specific academic track
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingKey(null)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStructureEdit} className="p-6 space-y-4 text-xs font-sans">
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Admission Fee (₹) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    required
+                    value={editAdmissionFee}
+                    onChange={(e) => setEditAdmissionFee(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold"
+                  />
+                  <span className="text-[10px] text-slate-400">One-time registration fee</span>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Monthly Tuition (₹) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    required
+                    value={editMonthlyFee}
+                    onChange={(e) => setEditMonthlyFee(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold text-emerald-700"
+                  />
+                  <span className="text-[10px] text-slate-400">Full combo monthly rate</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Per-Subject Fee (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={editPerSubjectFee}
+                    onChange={(e) => setEditPerSubjectFee(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <span className="text-[10px] text-slate-400">Single subject rate</span>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Exam Fee / Term (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={editExamFee}
+                    onChange={(e) => setEditExamFee(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <span className="text-[10px] text-slate-400">Per term (2 terms/yr)</span>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Study Materials (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={editMaterialsFee}
+                    onChange={(e) => setEditMaterialsFee(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <span className="text-[10px] text-slate-400">Annual kit & notes</span>
+                </div>
+              </div>
+
+              {/* Calculated Annual Preview */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Computed Est. Annual Fee</span>
+                  <span className="text-xs text-slate-500">Admission + (12 × Tuition) + (2 × Exam) + Materials</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-black text-slate-900">
+                    {formatCurrency(
+                      editAdmissionFee + (editMonthlyFee * 12) + (editExamFee * 2) + editMaterialsFee
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingKey(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  id="save-fee-structure-edit-btn"
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Save Class Rates</span>
                 </button>
               </div>
 

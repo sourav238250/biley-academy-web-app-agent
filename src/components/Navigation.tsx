@@ -31,6 +31,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   studentCount,
   pendingDuesCount,
   upcomingExamsCount,
+  attendanceRecordsCount,
 }) => {
   const tabs: { id: NavigationTab; label: string; icon: React.FC<any>; badge?: string | number; badgeColor?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -43,7 +44,13 @@ export const Navigation: React.FC<NavigationProps> = ({
     },
     { id: 'subjects', label: 'Subject Distribution', icon: BookOpen },
     { id: 'faculty', label: 'Faculty Allocation', icon: Users },
-    { id: 'attendance', label: 'Daily Attendance', icon: CalendarCheck },
+    {
+      id: 'attendance',
+      label: 'Daily Attendance',
+      icon: CalendarCheck,
+      badge: attendanceRecordsCount && attendanceRecordsCount > 0 ? `${attendanceRecordsCount}` : undefined,
+      badgeColor: 'bg-emerald-700',
+    },
     {
       id: 'exams',
       label: 'Examinations',
