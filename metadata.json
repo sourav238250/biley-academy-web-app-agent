@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix Biley Academy",
+  "description": "Comprehensive coaching institute management platform for Classes 5 to 12 featuring student admissions, subject curriculum mapping, faculty allocation, exam scheduling, result report cards, and student fee deposit tracking with receipts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
