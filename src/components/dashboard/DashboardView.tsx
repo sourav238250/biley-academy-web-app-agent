@@ -11,6 +11,8 @@ import {
   ClassLevel,
   AdminUser,
   NavigationTab,
+  QuestionBankItem,
+  AssignmentSet,
 } from '../../types';
 import { formatCurrency, computeStudentFeeSummary, CLASS_LEVELS } from '../../utils/academicUtils';
 import {
@@ -45,6 +47,7 @@ import {
   Check,
   Server,
   Save,
+  HelpCircle,
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -56,6 +59,8 @@ interface DashboardViewProps {
   deposits: FeeDeposit[];
   timetable?: TimetableSlot[];
   attendance?: AttendanceRecord[];
+  questionBank?: QuestionBankItem[];
+  assignments?: AssignmentSet[];
   onNavigateTab?: (tab: NavigationTab) => void;
   onNavigate?: (tab: NavigationTab) => void;
   onOpenAdmissionModal: () => void;
@@ -78,6 +83,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   deposits,
   timetable = [],
   attendance = [],
+  questionBank = [],
+  assignments = [],
   onNavigateTab,
   onNavigate,
   onOpenAdmissionModal,
@@ -116,6 +123,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         deposits,
         timetable,
         attendance,
+        questionBank,
+        assignments,
       };
 
       const result = exportDatabaseBackup(appState);
@@ -256,6 +265,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             >
               <CalendarCheck className="w-4 h-4" />
               <span>Daily Attendance</span>
+            </button>
+
+            <button
+              onClick={() => navigate('question-bank')}
+              id="dashboard-question-bank-btn"
+              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <HelpCircle className="w-4 h-4 text-amber-200" />
+              <span>Question Bank</span>
             </button>
 
             <button

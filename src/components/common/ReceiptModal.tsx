@@ -1,16 +1,57 @@
 import React, { useState } from 'react';
-import { FeeDeposit, Student } from '../../types';
+import { FeeDeposit, Student, InstitutionalAuthorizationConfig } from '../../types';
 import { formatCurrency } from '../../utils/academicUtils';
-import { Printer, X, CheckCircle, GraduationCap, Building2, Phone, Mail, MapPin, Loader2, FileDown } from 'lucide-react';
+import { DEFAULT_AUTHORIZATION_CONFIG } from '../../utils/storage';
+import {
+  Printer,
+  X,
+  CheckCircle,
+  GraduationCap,
+  Building2,
+  Phone,
+  Mail,
+  MapPin,
+  Loader2,
+  FileDown,
+  Edit3,
+  Check,
+  RotateCcw,
+} from 'lucide-react';
 
 interface ReceiptModalProps {
   deposit: FeeDeposit | null;
   student: Student | null;
   onClose: () => void;
+  authConfig?: InstitutionalAuthorizationConfig;
+  onUpdateAuthConfig?: (config: InstitutionalAuthorizationConfig) => void;
 }
 
-export const ReceiptModal: React.FC<ReceiptModalProps> = ({ deposit, student, onClose }) => {
+export const ReceiptModal: React.FC<ReceiptModalProps> = ({
+  deposit,
+  student,
+  onClose,
+  authConfig = DEFAULT_AUTHORIZATION_CONFIG,
+  onUpdateAuthConfig,
+}) => {
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isEditingAuth, setIsEditingAuth] = useState(false);
+
+  // Editable authorization signatory fields
+  const [signatoryName, setSignatoryName] = useState(
+    authConfig.accountsSignatoryName || 'S. Mukherjee'
+  );
+  const [signatoryDesignation, setSignatoryDesignation] = useState(
+    authConfig.accountsSignatoryDesignation || 'Chief Accounts Officer'
+  );
+  const [authoritySubtext, setAuthoritySubtext] = useState(
+    authConfig.accountsAuthoritySubtext || 'Biley Academy Treasury'
+  );
+  const [collectedByName, setCollectedByName] = useState(
+    deposit?.collectedBy || authConfig.defaultCollectedBy || 'Accounts Dept - S. Mukherjee'
+  );
+  const [sealText, setSealText] = useState(
+    authConfig.sealVerificationText || 'PAID'
+  );
 
   if (!deposit || !student) return null;
 
@@ -22,6 +63,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ deposit, student, on
     }, 150);
   };
 
+  const handleSaveAuth = () => {
+    if (onUpdateAuthConfig) {
+      onUpdateAuthConfig({
+        ...authConfig,
+        accountsSignatoryName: signatoryName,
+        accountsSignatoryDesignation: signatoryDesignation,
+        accountsAuthoritySubtext: authoritySubtext,
+        defaultCollectedBy: collectedByName,
+        sealVerificationText: sealText,
+      });
+    }
+    setIsEditingAuth(false);
+  };
+
   return (
     <div id="receipt-modal-backdrop" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-xs overflow-y-auto">
       <div id="receipt-modal-card" className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden my-8 border border-slate-200 print:m-0 print:border-none print:shadow-none print:w-full print:max-w-none">
@@ -30,9 +85,23 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ deposit, student, on
         <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white print:hidden">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-emerald-400" />
-            <span className="font-semibold text-sm">Official Payment Receipt Generated</span>
+            <span className="font-semibold text-sm">Official Payment Receipt</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsEditingAuth(!isEditingAuth)}
+              id="edit-receipt-auth-btn"
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer border ${
+                isEditingAuth
+                  ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-xs'
+                  : 'bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700'
+              }`}
+              title="Edit Authorized Signatory Name, Designation and Collector"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>{isEditingAuth ? 'Done Editing' : 'Edit Authorization'}</span>
+            </button>
+
             <button
               onClick={handlePrint}
               disabled={isPrinting}
@@ -62,6 +131,60 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ deposit, student, on
           </div>
         </div>
 
+        {/* Authorization Inline Edit Toolbar (Hidden in Print) */}
+        {isEditingAuth && (
+          <div className="bg-amber-50 border-b border-amber-200 p-4 print:hidden animate-in fade-in space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1.5 uppercase tracking-wide">
+                <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                Customize Authorization Name & Signature Lines
+              </span>
+              <button
+                onClick={handleSaveAuth}
+                className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Save to Settings</span>
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
+                  Authorized Signatory Name:
+                </label>
+                <input
+                  type="text"
+                  value={signatoryName}
+                  onChange={(e) => setSignatoryName(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-md font-bold text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-amber-500 text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
+                  Signatory Designation:
+                </label>
+                <input
+                  type="text"
+                  value={signatoryDesignation}
+                  onChange={(e) => setSignatoryDesignation(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-md font-medium text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-amber-500 text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
+                  Collected By Tag:
+                </label>
+                <input
+                  type="text"
+                  value={collectedByName}
+                  onChange={(e) => setCollectedByName(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-md font-medium text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-amber-500 text-xs"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Printable Receipt Body */}
         <div id="printable-receipt-content" className="p-8 bg-white text-slate-800 font-sans">
           {/* Institute Watermark & Header */}
@@ -73,7 +196,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ deposit, student, on
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-bold text-slate-950 tracking-tight">BILEY ACADEMY</h1>
+                    <h1 className="text-2xl font-bold text-slate-950 tracking-tight">
+                      {authConfig.sealInstitutionName || 'BILEY ACADEMY'}
+                    </h1>
                     <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
                       Est. 2018
                     </span>
@@ -181,21 +306,32 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ deposit, student, on
             <div className="flex items-center gap-3">
               <div className="w-20 h-20 rounded-full border-2 border-dashed border-emerald-700/60 flex items-center justify-center p-1 text-center rotate-[-8deg] select-none opacity-85">
                 <div className="border border-emerald-700/40 rounded-full w-full h-full flex flex-col items-center justify-center">
-                  <span className="text-[8px] font-bold text-emerald-800 uppercase tracking-tight">BILEY ACADEMY</span>
-                  <span className="text-[10px] font-black text-emerald-900 tracking-wider">PAID</span>
+                  <span className="text-[8px] font-bold text-emerald-800 uppercase tracking-tight">
+                    {authConfig.sealInstitutionName || 'BILEY ACADEMY'}
+                  </span>
+                  <span className="text-[10px] font-black text-emerald-900 tracking-wider">
+                    {sealText}
+                  </span>
                   <span className="text-[7px] text-emerald-700 font-mono">{deposit.depositDate}</span>
                 </div>
               </div>
               <div className="text-[11px] text-slate-500 max-w-[220px]">
                 <p>Receipt generated electronically.</p>
-                <p className="font-semibold text-slate-700">Collected by: {deposit.collectedBy}</p>
+                <p className="font-semibold text-slate-700">Collected by: {collectedByName}</p>
               </div>
             </div>
 
             <div className="text-right">
-              <div className="w-36 border-b border-slate-400 mb-1"></div>
-              <p className="text-[11px] font-bold text-slate-800">Authorized Accounts Signatory</p>
-              <p className="text-[10px] text-slate-500">Biley Academy Treasury</p>
+              <div className="w-40 border-b border-slate-400 mb-1 ml-auto"></div>
+              <p className="text-xs font-bold text-slate-900">
+                {signatoryName}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-700">
+                {signatoryDesignation}
+              </p>
+              <p className="text-[9px] text-slate-500">
+                {authoritySubtext}
+              </p>
             </div>
           </div>
 

@@ -14,7 +14,8 @@ import {
   getAttendanceStatusBadge,
   CLASS_LEVELS,
 } from '../../utils/academicUtils';
-import { evaluateSectionAuthorization } from '../../utils/auth';
+import { evaluateSectionAuthorization, hasPermission } from '../../utils/auth';
+import { SectionAuthHeader } from '../common/SectionAuthHeader';
 import {
   CalendarCheck,
   CheckCircle2,
@@ -63,6 +64,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
   onOpenPermissionsMatrix,
 }) => {
   const auth = evaluateSectionAuthorization(currentAdmin, 'attendance');
+  const canMarkAttendance = auth.canWrite && hasPermission(currentAdmin, 'ATTENDANCE_MARK');
 
   // Active sub-tab
   const [activeSubTab, setActiveSubTab] = useState<'mark' | 'register' | 'defaulters'>('mark');
@@ -329,6 +331,14 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
   return (
     <div className="space-y-6">
       
+      {/* Section Authorization Header */}
+      <SectionAuthHeader
+        currentAdmin={currentAdmin || null}
+        sectionTab="attendance"
+        onOpenAdminLogin={onOpenAdminLogin || (() => {})}
+        onOpenPermissionsMatrix={onOpenPermissionsMatrix}
+      />
+
       {/* Top Header Card */}
       <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -351,37 +361,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
             </div>
           </div>
         </div>
-
-        {/* RBAC Badge and Mode Switches */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${auth.badgeStyle}`}>
-            {auth.badgeLabel}
-          </span>
-          {currentAdmin && (
-            <span className="text-xs text-slate-500 font-medium">
-              Signed in: <strong className="text-slate-800">{currentAdmin.name}</strong>
-            </span>
-          )}
-        </div>
       </div>
-
-      {/* Role Notice if read-only */}
-      {auth.notice && (
-        <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl flex items-start gap-2.5 text-xs text-amber-900">
-          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="font-semibold">{auth.notice}</p>
-          </div>
-          {onOpenAdminLogin && (
-            <button
-              onClick={onOpenAdminLogin}
-              className="text-xs text-amber-800 font-bold underline hover:text-amber-950 cursor-pointer"
-            >
-              Switch Role
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Sub-Navigation Tabs */}
       <div className="flex border-b border-slate-200 bg-white px-4 rounded-xl shadow-xs">
@@ -583,7 +563,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
               </div>
 
               {/* Bulk mark buttons */}
-              {auth.canWrite && enrolledStudents.length > 0 && (
+              {canMarkAttendance && enrolledStudents.length > 0 && (
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -826,7 +806,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                     Marking attendance for <strong className="text-slate-900">{enrolledStudents.length} students</strong> on <strong>{selectedDate}</strong>.
                   </div>
 
-                  {auth.canWrite ? (
+                  {canMarkAttendance ? (
                     <button
                       type="submit"
                       id="save-attendance-btn"

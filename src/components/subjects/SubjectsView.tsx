@@ -305,26 +305,28 @@ export const SubjectsView: React.FC<SubjectsViewProps> = ({
               {/* Card Footer Actions */}
               <div className="pt-3 border-t border-slate-100 mt-4 flex items-center justify-between text-xs">
                 <span className="text-[10px] font-mono text-slate-400">{sub.id}</span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleOpenEdit(sub)}
-                    className="p-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded cursor-pointer"
-                    title="Edit Subject"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Remove ${sub.name} from curriculum?`)) {
-                        onDeleteSubject(sub.id);
-                      }
-                    }}
-                    className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
-                    title="Delete Subject"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                {auth.canWrite && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEdit(sub)}
+                      className="p-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded cursor-pointer"
+                      title="Edit Subject"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Remove ${sub.name} from curriculum?`)) {
+                          onDeleteSubject(sub.id);
+                        }
+                      }}
+                      className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
+                      title="Delete Subject"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
             </div>

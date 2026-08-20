@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Exam, ExamResult, Student, Subject, StudentSubjectScore, AdminUser } from '../../types';
 import { calculateGrade, assignRanksToResults } from '../../utils/academicUtils';
-import { evaluateSectionAuthorization } from '../../utils/auth';
+import { evaluateSectionAuthorization, hasPermission } from '../../utils/auth';
 import { SectionAuthHeader } from '../common/SectionAuthHeader';
 import confetti from 'canvas-confetti';
 import {
@@ -34,6 +34,7 @@ interface ResultsViewProps {
   currentAdmin?: AdminUser | null;
   onOpenAdminLogin?: () => void;
   onOpenPermissionsMatrix?: () => void;
+  onOpenAuthorizationSettings?: () => void;
 }
 
 export const ResultsView: React.FC<ResultsViewProps> = ({
@@ -48,8 +49,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   currentAdmin,
   onOpenAdminLogin,
   onOpenPermissionsMatrix,
+  onOpenAuthorizationSettings,
 }) => {
   const auth = evaluateSectionAuthorization(currentAdmin, 'results');
+  const canEnterMarks = auth.canWrite && hasPermission(currentAdmin, 'RESULT_ENTRY_GRADE');
   const [selectedExamId, setSelectedExamId] = useState<string>(
     initialSelectedExamId || exams[0]?.id || ''
   );
@@ -225,7 +228,19 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             ))}
           </select>
 
-          {auth.canWrite ? (
+          {onOpenAuthorizationSettings && (
+            <button
+              onClick={onOpenAuthorizationSettings}
+              id="report-card-signatory-settings-btn"
+              title="Edit Academic Director, Mentor Signatory Names, and Institutional Seals"
+              className="hidden md:flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Edit2 className="w-3.5 h-3.5 text-amber-700" />
+              <span>Report Signatories</span>
+            </button>
+          )}
+
+          {canEnterMarks ? (
             <button
               onClick={() => handleOpenMarksEntry()}
               id="enter-marks-btn"
@@ -372,24 +387,28 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                 <FileText className="w-3.5 h-3.5" />
                                 Official Report Card
                               </button>
-                              <button
-                                onClick={() => handleOpenMarksEntry(result)}
-                                className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded cursor-pointer"
-                                title="Edit Evaluation"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (confirm('Delete this marks evaluation?')) {
-                                    onDeleteResult(result.id);
-                                  }
-                                }}
-                                className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
-                                title="Delete Evaluation"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {canEnterMarks && (
+                                <button
+                                  onClick={() => handleOpenMarksEntry(result)}
+                                  className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded cursor-pointer"
+                                  title="Edit Evaluation"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              {canEnterMarks && (
+                                <button
+                                  onClick={() => {
+                                    if (confirm('Delete this marks evaluation?')) {
+                                      onDeleteResult(result.id);
+                                    }
+                                  }}
+                                  className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
+                                  title="Delete Evaluation"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>

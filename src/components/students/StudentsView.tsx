@@ -25,7 +25,7 @@ import {
   formatCurrency,
   generateStudentId,
 } from '../../utils/academicUtils';
-import { evaluateSectionAuthorization } from '../../utils/auth';
+import { evaluateSectionAuthorization, hasPermission } from '../../utils/auth';
 import { SectionAuthHeader } from '../common/SectionAuthHeader';
 import confetti from 'canvas-confetti';
 import {
@@ -101,6 +101,9 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
   onOpenPermissionsMatrix,
 }) => {
   const auth = evaluateSectionAuthorization(currentAdmin, 'students');
+  const canCollectFee = hasPermission(currentAdmin, 'FEE_COLLECTION_WRITE');
+  const canDeleteStudent = hasPermission(currentAdmin, 'STUDENT_DELETE');
+  const canAdmitStudent = auth.canWrite && hasPermission(currentAdmin, 'STUDENT_ADMISSION_WRITE');
   const triggerFeeDeposit = onOpenFeeDepositModal || onDepositFee || (() => {});
   const triggerIdCard = onOpenIdCardModal || onViewIdCard || (() => {});
   const [searchQuery, setSearchQuery] = useState('');
@@ -704,31 +707,37 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                           >
                             <IdCard className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => triggerFeeDeposit(student.id)}
-                            title="Record Fee Deposit"
-                            className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-md transition-colors cursor-pointer"
-                          >
-                            <CreditCard className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenEdit(student)}
-                            title="Edit Student & Subjects"
-                            className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-md transition-colors cursor-pointer"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm(`Are you sure you want to remove ${student.name} from Biley Academy records?`)) {
-                                onDeleteStudent(student.id);
-                              }
-                            }}
-                            title="Delete Student Record"
-                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canCollectFee && (
+                            <button
+                              onClick={() => triggerFeeDeposit(student.id)}
+                              title="Record Fee Deposit"
+                              className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-md transition-colors cursor-pointer"
+                            >
+                              <CreditCard className="w-4 h-4" />
+                            </button>
+                          )}
+                          {auth.canWrite && (
+                            <button
+                              onClick={() => handleOpenEdit(student)}
+                              title="Edit Student & Subjects"
+                              className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-md transition-colors cursor-pointer"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {canDeleteStudent && (
+                            <button
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to remove ${student.name} from Biley Academy records?`)) {
+                                  onDeleteStudent(student.id);
+                                }
+                              }}
+                              title="Delete Student Record"
+                              className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1374,16 +1383,18 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                     <BookOpen className="w-4 h-4 text-indigo-600" />
                     Enrolled Coaching Subjects
                   </h4>
-                  <button
-                    onClick={() => {
-                      const st = viewingStudent;
-                      setViewingStudent(null);
-                      handleOpenEdit(st);
-                    }}
-                    className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer"
-                  >
-                    <Edit2 className="w-3 h-3" /> Change Subjects
-                  </button>
+                  {auth.canWrite && (
+                    <button
+                      onClick={() => {
+                        const st = viewingStudent;
+                        setViewingStudent(null);
+                        handleOpenEdit(st);
+                      }}
+                      className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Edit2 className="w-3 h-3" /> Change Subjects
+                    </button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -1424,26 +1435,31 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
 
               {/* Action Buttons */}
               <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    const st = viewingStudent;
-                    setViewingStudent(null);
-                    handleOpenEdit(st);
-                  }}
-                  className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Edit2 className="w-3.5 h-3.5" /> Edit Info & Subjects
-                </button>
-                <button
-                  onClick={() => {
-                    const sId = viewingStudent.id;
-                    setViewingStudent(null);
-                    triggerFeeDeposit(sId);
-                  }}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <CreditCard className="w-3.5 h-3.5" /> Record Fee Deposit
-                </button>
+                {auth.canWrite ? (
+                  <button
+                    onClick={() => {
+                      const st = viewingStudent;
+                      setViewingStudent(null);
+                      handleOpenEdit(st);
+                    }}
+                    className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit Info & Subjects
+                  </button>
+                ) : <div />}
+                
+                {canCollectFee && (
+                  <button
+                    onClick={() => {
+                      const sId = viewingStudent.id;
+                      setViewingStudent(null);
+                      triggerFeeDeposit(sId);
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" /> Record Fee Deposit
+                  </button>
+                )}
               </div>
 
             </div>

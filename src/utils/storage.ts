@@ -7,6 +7,9 @@ import {
   ExamResult,
   FeeDeposit,
   TimetableSlot,
+  QuestionBankItem,
+  AssignmentSet,
+  InstitutionalAuthorizationConfig,
 } from '../types';
 import {
   INITIAL_ATTENDANCE,
@@ -18,6 +21,35 @@ import {
   INITIAL_DEPOSITS,
   INITIAL_TIMETABLE,
 } from '../data/initialData';
+import {
+  INITIAL_QUESTION_BANK,
+  INITIAL_ASSIGNMENT_SETS,
+} from '../data/initialQuestionBankData';
+
+export const DEFAULT_AUTHORIZATION_CONFIG: InstitutionalAuthorizationConfig = {
+  directorName: 'Dr. Birendra Nath Biley',
+  directorDesignation: 'Director & Founder',
+  directorAuthoritySubtext: 'Biley Academy Governing Board',
+
+  academicHeadName: 'Prof. Ananya Sen',
+  academicHeadDesignation: 'Academic Dean & Admissions Head',
+  academicAuthoritySubtext: 'Biley Academy Academic Council',
+  classMentorDefaultName: 'Prof. Ananya Sen',
+  classMentorDefaultDesignation: 'Class Mentor & Faculty In-Charge',
+
+  accountsSignatoryName: 'S. Mukherjee',
+  accountsSignatoryDesignation: 'Chief Accounts Officer',
+  accountsAuthoritySubtext: 'Biley Academy Treasury',
+  defaultCollectedBy: 'Accounts Dept - S. Mukherjee',
+
+  examControllerName: 'Dr. Debabrata Roy',
+  examControllerDesignation: 'Controller of Examinations',
+  preparedByFacultyName: 'Dr. Anirban Mukherjee',
+  preparedByDesignation: 'Senior Faculty Specialist',
+
+  sealInstitutionName: 'BILEY ACADEMY',
+  sealVerificationText: 'AUTHORIZED & VERIFIED',
+};
 
 export interface AppStateData {
   students: Student[];
@@ -28,6 +60,9 @@ export interface AppStateData {
   deposits: FeeDeposit[];
   timetable: TimetableSlot[];
   attendance: AttendanceRecord[];
+  questionBank: QuestionBankItem[];
+  assignments: AssignmentSet[];
+  authConfig?: InstitutionalAuthorizationConfig;
 }
 
 const STORAGE_KEYS = {
@@ -39,6 +74,9 @@ const STORAGE_KEYS = {
   DEPOSITS: 'biley_academy_deposits_v1',
   TIMETABLE: 'biley_academy_timetable_v1',
   ATTENDANCE: 'biley_academy_attendance_v1',
+  QUESTION_BANK: 'biley_academy_question_bank_v1',
+  ASSIGNMENTS: 'biley_academy_assignments_v1',
+  AUTH_CONFIG: 'biley_academy_auth_config_v1',
 };
 
 export function loadFromStorage<T>(key: string, fallback: T): T {
@@ -70,6 +108,9 @@ export function loadInitialState(): AppStateData {
     deposits: loadFromStorage<FeeDeposit[]>(STORAGE_KEYS.DEPOSITS, INITIAL_DEPOSITS),
     timetable: loadFromStorage<TimetableSlot[]>(STORAGE_KEYS.TIMETABLE, INITIAL_TIMETABLE),
     attendance: loadFromStorage<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE),
+    questionBank: loadFromStorage<QuestionBankItem[]>(STORAGE_KEYS.QUESTION_BANK, INITIAL_QUESTION_BANK),
+    assignments: loadFromStorage<AssignmentSet[]>(STORAGE_KEYS.ASSIGNMENTS, INITIAL_ASSIGNMENT_SETS),
+    authConfig: loadFromStorage<InstitutionalAuthorizationConfig>(STORAGE_KEYS.AUTH_CONFIG, DEFAULT_AUTHORIZATION_CONFIG),
   };
 }
 
@@ -82,6 +123,11 @@ export function saveToStorage(data: AppStateData): void {
   saveItemToStorage(STORAGE_KEYS.DEPOSITS, data.deposits);
   saveItemToStorage(STORAGE_KEYS.TIMETABLE, data.timetable);
   saveItemToStorage(STORAGE_KEYS.ATTENDANCE, data.attendance);
+  saveItemToStorage(STORAGE_KEYS.QUESTION_BANK, data.questionBank);
+  saveItemToStorage(STORAGE_KEYS.ASSIGNMENTS, data.assignments);
+  if (data.authConfig) {
+    saveItemToStorage(STORAGE_KEYS.AUTH_CONFIG, data.authConfig);
+  }
 }
 
 export function resetToInitialMockData(): AppStateData {
@@ -93,16 +139,10 @@ export function resetToInitialMockData(): AppStateData {
   localStorage.removeItem(STORAGE_KEYS.DEPOSITS);
   localStorage.removeItem(STORAGE_KEYS.TIMETABLE);
   localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
-  return {
-    students: INITIAL_STUDENTS,
-    faculty: INITIAL_FACULTY,
-    subjects: INITIAL_SUBJECTS,
-    exams: INITIAL_EXAMS,
-    results: INITIAL_RESULTS,
-    deposits: INITIAL_DEPOSITS,
-    timetable: INITIAL_TIMETABLE,
-    attendance: INITIAL_ATTENDANCE,
-  };
+  localStorage.removeItem(STORAGE_KEYS.QUESTION_BANK);
+  localStorage.removeItem(STORAGE_KEYS.ASSIGNMENTS);
+  localStorage.removeItem(STORAGE_KEYS.AUTH_CONFIG);
+  return loadInitialState();
 }
 
 export interface BackupPayload {
@@ -120,6 +160,8 @@ export interface BackupPayload {
     deposits: number;
     timetable: number;
     attendance: number;
+    questionBank: number;
+    assignments: number;
   };
   data: AppStateData;
 }
@@ -133,9 +175,9 @@ export function exportDatabaseBackup(data: AppStateData): { filename: string; si
   });
 
   const payload: BackupPayload = {
-    version: '2.1.0',
+    version: '2.2.0',
     institution: 'Biley Academy ERP System',
-    curriculum: 'Standardized Classes 1 to 12 (Math, Physics, Chemistry, Biology, CS, CA, English)',
+    curriculum: 'Standardized Classes 1 to 12 (Math, Physics, Chemistry, Biology, CS, CA, English, Question Bank & Assignments)',
     exportTimestamp: now.toISOString(),
     exportDateFormatted: dateFormatted,
     counts: {
@@ -147,6 +189,8 @@ export function exportDatabaseBackup(data: AppStateData): { filename: string; si
       deposits: data.deposits.length,
       timetable: data.timetable.length,
       attendance: (data.attendance || []).length,
+      questionBank: (data.questionBank || []).length,
+      assignments: (data.assignments || []).length,
     },
     data,
   };
@@ -186,9 +230,15 @@ export function parseDatabaseBackup(jsonString: string): AppStateData {
     throw new Error('Invalid database backup structure. Required entities are missing.');
   }
 
-  // Ensure attendance array exists
+  // Ensure arrays exist with fallbacks
   if (!Array.isArray(stateData.attendance)) {
     stateData.attendance = [];
+  }
+  if (!Array.isArray(stateData.questionBank)) {
+    stateData.questionBank = INITIAL_QUESTION_BANK;
+  }
+  if (!Array.isArray(stateData.assignments)) {
+    stateData.assignments = INITIAL_ASSIGNMENT_SETS;
   }
 
   return stateData;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Exam, Subject, ClassLevel, StreamType, ExamType, AdminUser } from '../../types';
 import { CLASS_LEVELS, STREAMS_FOR_CLASS } from '../../utils/academicUtils';
-import { evaluateSectionAuthorization } from '../../utils/auth';
+import { evaluateSectionAuthorization, hasPermission } from '../../utils/auth';
 import { SectionAuthHeader } from '../common/SectionAuthHeader';
 import {
   FileCheck2,
@@ -44,6 +44,7 @@ export const ExamsView: React.FC<ExamsViewProps> = ({
   onOpenPermissionsMatrix,
 }) => {
   const auth = evaluateSectionAuthorization(currentAdmin, 'exams');
+  const canManageExams = auth.canWrite && hasPermission(currentAdmin, 'EXAM_CREATE_SCHEDULE');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>('all');
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
@@ -152,7 +153,7 @@ export const ExamsView: React.FC<ExamsViewProps> = ({
           </p>
         </div>
         
-        {auth.canWrite ? (
+        {canManageExams ? (
           <button
             onClick={handleOpenAdd}
             id="schedule-exam-btn"
@@ -250,24 +251,28 @@ export const ExamsView: React.FC<ExamsViewProps> = ({
                     <Award className="w-4 h-4" />
                     {isPublished ? 'View Results & Report Cards' : 'Enter / Grade Marks'}
                   </button>
-                  <button
-                    onClick={() => handleOpenEdit(exam)}
-                    className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg cursor-pointer"
-                    title="Edit Exam"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Delete exam record ${exam.title}?`)) {
-                        onDeleteExam(exam.id);
-                      }
-                    }}
-                    className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer"
-                    title="Delete Exam"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {canManageExams && (
+                    <button
+                      onClick={() => handleOpenEdit(exam)}
+                      className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg cursor-pointer"
+                      title="Edit Exam"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  )}
+                  {canManageExams && (
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete exam record ${exam.title}?`)) {
+                          onDeleteExam(exam.id);
+                        }
+                      }}
+                      className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer"
+                      title="Delete Exam"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 

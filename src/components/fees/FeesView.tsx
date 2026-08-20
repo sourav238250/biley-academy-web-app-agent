@@ -15,7 +15,7 @@ import {
   DEFAULT_FEE_STRUCTURE,
   CLASS_LEVELS,
 } from '../../utils/academicUtils';
-import { evaluateSectionAuthorization } from '../../utils/auth';
+import { evaluateSectionAuthorization, hasPermission } from '../../utils/auth';
 import { SectionAuthHeader } from '../common/SectionAuthHeader';
 import { SessionRevenueGoalTracker } from './SessionRevenueGoalTracker';
 import confetti from 'canvas-confetti';
@@ -61,6 +61,7 @@ interface FeesViewProps {
   currentAdmin?: AdminUser | null;
   onOpenAdminLogin?: () => void;
   onOpenPermissionsMatrix?: () => void;
+  onOpenAuthorizationSettings?: () => void;
 }
 
 export const FeesView: React.FC<FeesViewProps> = ({
@@ -76,8 +77,11 @@ export const FeesView: React.FC<FeesViewProps> = ({
   currentAdmin,
   onOpenAdminLogin,
   onOpenPermissionsMatrix,
+  onOpenAuthorizationSettings,
 }) => {
   const auth = evaluateSectionAuthorization(currentAdmin, 'fees');
+  const canCollectFees = auth.canWrite && hasPermission(currentAdmin, 'FEES_COLLECT_DEPOSIT');
+  const canManageStructures = auth.canWrite && hasPermission(currentAdmin, 'FEES_MANAGE_STRUCTURE');
   const [activeTab, setActiveTab] = useState<'deposits' | 'dues' | 'structure'>(
     initialActiveTab || 'deposits'
   );
@@ -206,7 +210,7 @@ export const FeesView: React.FC<FeesViewProps> = ({
       'Total Estimated Annual Fee (INR)',
     ];
 
-    const rows = Object.values(feeStructures).map((st) => {
+    const rows = (Object.values(feeStructures) as FeeStructure[]).map((st: FeeStructure) => {
       const estAnnual =
         st.admissionFee +
         st.monthlyTuitionFee * 12 +
@@ -373,9 +377,21 @@ export const FeesView: React.FC<FeesViewProps> = ({
                 12 Classes
               </span>
             </button>
+
+            {onOpenAuthorizationSettings && (
+              <button
+                onClick={onOpenAuthorizationSettings}
+                id="fee-signatory-settings-btn"
+                title="Edit Authorized Accounts Signatory Name, Designation, and Receipt Seal"
+                className="px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 text-emerald-800 hover:bg-emerald-100 bg-emerald-50 border border-emerald-200"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Receipt Signatory</span>
+              </button>
+            )}
           </div>
 
-          {auth.canWrite ? (
+          {canCollectFees ? (
             <button
               onClick={() => handleOpenDepositModal()}
               id="open-deposit-modal-btn"
@@ -540,17 +556,19 @@ export const FeesView: React.FC<FeesViewProps> = ({
                               <Printer className="w-3 h-3 text-amber-400" />
                               View / Print
                             </button>
-                            <button
-                              onClick={() => {
-                                if (confirm(`Delete receipt ${dep.receiptNo}?`)) {
-                                  onDeleteDeposit(dep.id);
-                                }
-                              }}
-                              className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
-                              title="Delete Transaction"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {canCollectFees && (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Delete receipt ${dep.receiptNo}?`)) {
+                                    onDeleteDeposit(dep.id);
+                                  }
+                                }}
+                                className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
+                                title="Delete Transaction"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -687,12 +705,14 @@ export const FeesView: React.FC<FeesViewProps> = ({
                             <Send className="w-3 h-3 text-slate-500" />
                             Remind
                           </button>
-                          <button
-                            onClick={() => handleOpenDepositModal(student.id)}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
-                          >
-                            Deposit Now
-                          </button>
+                          {canCollectFees && (
+                            <button
+                              onClick={() => handleOpenDepositModal(student.id)}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                            >
+                              Deposit Now
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -750,7 +770,7 @@ export const FeesView: React.FC<FeesViewProps> = ({
                   <Printer className="w-3.5 h-3.5 text-amber-400" />
                   <span>Print Schedule</span>
                 </button>
-                {auth.canWrite && (
+                {canManageStructures && (
                   <button
                     onClick={handleResetFeeStructures}
                     id="reset-fee-structure-btn"
@@ -1045,7 +1065,7 @@ export const FeesView: React.FC<FeesViewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {Object.entries(feeStructures)
+                  {(Object.entries(feeStructures) as [string, FeeStructure][])
                     .filter(([key, st]) => {
                       const classNum = parseInt(st.classLevel, 10);
                       if (structureCategoryFilter === 'PRIMARY') return classNum >= 1 && classNum <= 4;
@@ -1115,7 +1135,7 @@ export const FeesView: React.FC<FeesViewProps> = ({
                               >
                                 Estimate
                               </button>
-                              {auth.canWrite && (
+                              {canManageStructures && (
                                 <button
                                   onClick={() => handleStartEditStructure(key, st)}
                                   title="Edit fee amounts for this class"

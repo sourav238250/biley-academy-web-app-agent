@@ -8,6 +8,8 @@ import {
   FeeDeposit,
   TimetableSlot,
   AttendanceRecord,
+  AssignmentSet,
+  QuestionBankItem,
 } from '../../types';
 import {
   formatCurrency,
@@ -18,6 +20,8 @@ import {
   getAttendanceStatusBadge,
   DEFAULT_FEE_STRUCTURE,
 } from '../../utils/academicUtils';
+import { downloadAssignmentPDF } from '../../utils/pdfGenerator';
+import { PrintPreviewModal } from '../question-bank/PrintPreviewModal';
 import {
   GraduationCap,
   Award,
@@ -37,6 +41,10 @@ import {
   Check,
   XCircle,
   HelpCircle,
+  FileCheck,
+  Download,
+  Paperclip,
+  Tag,
 } from 'lucide-react';
 
 interface StudentPortalViewProps {
@@ -48,6 +56,8 @@ interface StudentPortalViewProps {
   deposits: FeeDeposit[];
   timetable: TimetableSlot[];
   attendance?: AttendanceRecord[];
+  assignments?: AssignmentSet[];
+  questionBank?: QuestionBankItem[];
   onOpenFeeDepositModal: (studentId: string) => void;
   onViewReceipt: (deposit: FeeDeposit) => void;
   onViewReportCard: (result: ExamResult) => void;
@@ -63,6 +73,8 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   deposits,
   timetable,
   attendance = [],
+  assignments = [],
+  questionBank = [],
   onOpenFeeDepositModal,
   onViewReceipt,
   onViewReportCard,
@@ -71,7 +83,8 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
     students[0]?.id || ''
   );
-  const [portalTab, setPortalTab] = useState<'overview' | 'academics' | 'attendance' | 'exams' | 'fees'>('overview');
+  const [portalTab, setPortalTab] = useState<'overview' | 'academics' | 'attendance' | 'assignments' | 'exams' | 'fees'>('overview');
+  const [previewAssignment, setPreviewAssignment] = useState<AssignmentSet | null>(null);
 
   const student = students.find((s) => s.id === selectedStudentId) || students[0];
 
@@ -90,6 +103,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   const coachingMode = getStudentCoachingMode(student, subjects);
   const attendanceSummary = computeStudentAttendanceSummary(student, attendance, subjects, faculty);
   const studentAttendanceRecords = attendance.filter((a) => a.studentId === student.id);
+  const studentAssignments = assignments.filter((a) => a.classLevel === student.classLevel);
 
   return (
     <div className="space-y-6">
@@ -146,6 +160,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
           {[
             { id: 'overview', label: 'My Academic Overview', icon: GraduationCap },
             { id: 'academics', label: `Enrolled Subjects (${enrolledSubjects.length})`, icon: BookOpen },
+            { id: 'assignments', label: `Assignments & DPPs (${studentAssignments.length})`, icon: FileCheck },
             { id: 'attendance', label: `Daily Attendance (${attendanceSummary.attendancePercentage}%)`, icon: CalendarCheck },
             { id: 'exams', label: `Exams & Report Cards (${studentResults.length})`, icon: Award },
             { id: 'fees', label: `Fees & Receipts (${studentDeposits.length})`, icon: CreditCard },
@@ -516,6 +531,112 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
         </div>
       )}
 
+      {/* Tab: Assignments & DPP Question Sets */}
+      {portalTab === 'assignments' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-slate-900 text-sm">
+              Class {student.classLevel} Homework, DPPs & Practice Papers ({studentAssignments.length})
+            </h3>
+            <span className="text-xs text-slate-500">Download formatted PDFs for printing</span>
+          </div>
+
+          {studentAssignments.length === 0 ? (
+            <div className="bg-white rounded-2xl p-8 text-center border border-slate-200 shadow-xs">
+              <FileCheck className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-slate-500 text-xs">
+                No assignments or question sets currently published for Class {student.classLevel}.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {studentAssignments.map((a) => (
+                <div
+                  key={a.id}
+                  className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-900 border border-blue-200 font-bold rounded-md text-[10px]">
+                        {a.subjectName}
+                      </span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                        a.difficulty === 'Easy'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          : a.difficulty === 'Medium'
+                          ? 'bg-amber-50 text-amber-800 border-amber-300'
+                          : 'bg-rose-50 text-rose-800 border-rose-300'
+                      }`}>
+                        {a.difficulty}
+                      </span>
+                    </div>
+
+                    <h4 className="font-black text-slate-900 text-sm">{a.title}</h4>
+                    <p className="text-slate-500 text-xs">Chapter: {a.chapter}</p>
+
+                    {a.topicTags && a.topicTags.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1">
+                        {a.topicTags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-md"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-50 rounded-xl text-center text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">Total Marks</span>
+                      <span className="font-black text-emerald-700">{a.totalMarks}M</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">Questions</span>
+                      <span className="font-bold text-slate-800">
+                        {(a.questionIds?.length || 0) + (a.customQuestions?.length || 0)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">Time</span>
+                      <span className="font-bold text-slate-800">{a.timeAllowedMinutes || 45}m</span>
+                    </div>
+                  </div>
+
+                  {a.attachmentFileName && a.attachmentData && (
+                    <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 overflow-hidden">
+                        <Paperclip className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <span className="font-semibold text-blue-950 truncate text-[11px]">{a.attachmentFileName}</span>
+                      </div>
+                      <a
+                        href={a.attachmentData}
+                        download={a.attachmentFileName}
+                        className="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200"
+                      >
+                        Download File
+                      </a>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                    <button
+                      onClick={() => setPreviewAssignment(a)}
+                      className="flex-1 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Download PDF / Print</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tab 5: Fees & Receipts */}
       {portalTab === 'fees' && (
         <div className="space-y-6">
@@ -583,8 +704,17 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
               </div>
             )}
           </div>
-
         </div>
+      )}
+
+      {/* Print Preview & PDF Modal for Student */}
+      {previewAssignment && (
+        <PrintPreviewModal
+          isOpen={!!previewAssignment}
+          onClose={() => setPreviewAssignment(null)}
+          assignment={previewAssignment}
+          allQuestions={questionBank}
+        />
       )}
 
     </div>

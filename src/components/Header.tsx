@@ -29,6 +29,7 @@ interface HeaderProps {
   onOpenAdminLogin: () => void;
   onAdminLogout: () => void;
   onOpenPermissionsMatrix?: () => void;
+  onOpenAuthorizationSettings?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -43,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAdminLogin,
   onAdminLogout,
   onOpenPermissionsMatrix,
+  onOpenAuthorizationSettings,
 }) => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const isStudentPortal = activeTab === 'student-portal';
@@ -173,6 +175,23 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
 
                     <div className="p-1 space-y-0.5 text-xs font-medium text-slate-700">
+                      {onOpenAuthorizationSettings && (
+                        <button
+                          onClick={() => {
+                            setShowUserDropdown(false);
+                            onOpenAuthorizationSettings();
+                          }}
+                          id="header-dropdown-edit-auth-btn"
+                          className="w-full text-left px-3 py-2 hover:bg-amber-50 rounded-lg flex items-center gap-2 cursor-pointer text-slate-900 font-bold"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-amber-600" />
+                          <span className="flex-1">Edit Authorization Names</span>
+                          <span className="text-[9px] bg-amber-200/60 text-amber-900 px-1.5 py-0.5 rounded font-bold uppercase">
+                            Config
+                          </span>
+                        </button>
+                      )}
+
                       {onOpenPermissionsMatrix && (
                         <button
                           onClick={() => {

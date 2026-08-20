@@ -28,6 +28,36 @@ export interface AdminUser {
   lastLogin?: string;
 }
 
+export interface InstitutionalAuthorizationConfig {
+  // Director / Super Admin Authorization
+  directorName: string;
+  directorDesignation: string;
+  directorAuthoritySubtext: string;
+
+  // Academic Head & Evaluation Signatories
+  academicHeadName: string;
+  academicHeadDesignation: string;
+  academicAuthoritySubtext: string;
+  classMentorDefaultName: string;
+  classMentorDefaultDesignation: string;
+
+  // Accounts & Fee Receipt Signatories
+  accountsSignatoryName: string;
+  accountsSignatoryDesignation: string;
+  accountsAuthoritySubtext: string;
+  defaultCollectedBy: string;
+
+  // Question Papers & Examination Cell Authorization
+  examControllerName: string;
+  examControllerDesignation: string;
+  preparedByFacultyName: string;
+  preparedByDesignation: string;
+
+  // Official Stamp & Academy Seal
+  sealInstitutionName: string;
+  sealVerificationText: string;
+}
+
 export type NavigationTab =
   | 'dashboard'
   | 'students'
@@ -37,6 +67,7 @@ export type NavigationTab =
   | 'exams'
   | 'results'
   | 'fees'
+  | 'question-bank'
   | 'student-portal';
 
 export interface Student {
@@ -235,5 +266,85 @@ export interface StudentAttendanceSummary {
   status: 'Excellent' | 'Good' | 'Average' | 'Critical Shortage';
   subjectWise: SubjectAttendanceStat[];
   recentLogs: AttendanceRecord[];
+}
+
+export type DifficultyLevel = 'Easy' | 'Medium' | 'Hard';
+
+export type QuestionType =
+  | 'Multiple Choice (MCQ)'
+  | 'Short Answer'
+  | 'Long Answer'
+  | 'Numerical / Problem'
+  | 'Fill in the Blanks'
+  | 'True / False';
+
+export interface QuestionBankItem {
+  id: string; // e.g. "QB-10-MATH-001"
+  code: string;
+  classLevel: ClassLevel;
+  stream: StreamType;
+  subjectId: string;
+  subjectName: string;
+  chapterName: string;
+  topicTags: string[]; // e.g. ["Trigonometry", "Identities", "Calculus"]
+  difficulty: DifficultyLevel; // 'Easy' | 'Medium' | 'Hard'
+  questionType: QuestionType;
+  questionText: string;
+  options?: string[]; // For MCQ (e.g. ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"])
+  correctAnswer?: string; // e.g. "Option C: 120 N" or "x = 4, y = -2"
+  answerExplanation?: string; // Model answer / detailed step-by-step solution
+  marks: number;
+  authorFacultyId?: string;
+  authorFacultyName?: string;
+  sourceOrYear?: string; // e.g. "CBSE Board 2024", "NCERT Exemplar", "Advanced Mock"
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type AssignmentType =
+  | 'Assignment'
+  | 'Practice Question Set'
+  | 'Daily Practice Paper (DPP)'
+  | 'Sample Paper'
+  | 'Homework';
+
+export interface CustomAssignmentQuestion {
+  id: string;
+  questionText: string;
+  questionType: QuestionType;
+  difficulty: DifficultyLevel;
+  marks: number;
+  topicTags?: string[];
+  options?: string[];
+  correctAnswer?: string;
+  answerExplanation?: string;
+}
+
+export interface AssignmentSet {
+  id: string; // e.g. "ASG-2026-101"
+  title: string;
+  type: AssignmentType;
+  classLevel: ClassLevel;
+  stream: StreamType;
+  subjectId: string;
+  subjectName: string;
+  chapter: string;
+  totalMarks: number;
+  timeAllowedMinutes?: number;
+  dueDate?: string;
+  instructions?: string;
+  difficulty: DifficultyLevel | 'Mixed';
+  topicTags: string[];
+  questionIds: string[]; // Linked QuestionBankItem IDs
+  customQuestions?: CustomAssignmentQuestion[];
+  attachmentFileName?: string;
+  attachmentFileType?: string;
+  attachmentData?: string; // Base64 data or text payload
+  attachmentSize?: string;
+  uploadedAt?: string;
+  createdBy: string;
+  createdAt: string;
+  status: 'Published' | 'Draft' | 'Archived';
+  submissionCount?: number;
 }
 

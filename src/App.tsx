@@ -10,8 +10,19 @@ import {
   TimetableSlot,
   AttendanceRecord,
   AdminUser,
+  QuestionBankItem,
+  AssignmentSet,
+  InstitutionalAuthorizationConfig,
 } from './types';
-import { loadInitialState, saveToStorage, resetToInitialMockData, loadFromStorage, saveItemToStorage, AppStateData } from './utils/storage';
+import {
+  loadInitialState,
+  saveToStorage,
+  resetToInitialMockData,
+  loadFromStorage,
+  saveItemToStorage,
+  AppStateData,
+  DEFAULT_AUTHORIZATION_CONFIG,
+} from './utils/storage';
 
 // Layout components
 import { Header } from './components/Header';
@@ -20,6 +31,7 @@ import { Navigation } from './components/Navigation';
 // Auth components
 import { AdminLoginModal, DEMO_ADMIN_ACCOUNTS } from './components/auth/AdminLoginModal';
 import { PermissionsMatrixModal } from './components/common/PermissionsMatrixModal';
+import { AuthorizationSettingsModal } from './components/common/AuthorizationSettingsModal';
 
 // View modules
 import { DashboardView } from './components/dashboard/DashboardView';
@@ -27,6 +39,7 @@ import { StudentsView } from './components/students/StudentsView';
 import { SubjectsView } from './components/subjects/SubjectsView';
 import { FacultyView } from './components/faculty/FacultyView';
 import { AttendanceView } from './components/attendance/AttendanceView';
+import { QuestionBankView } from './components/question-bank/QuestionBankView';
 import { ExamsView } from './components/exams/ExamsView';
 import { ResultsView } from './components/results/ResultsView';
 import { FeesView } from './components/fees/FeesView';
@@ -60,6 +73,10 @@ export default function App() {
   const [deposits, setDeposits] = useState<FeeDeposit[]>([]);
   const [timetable, setTimetable] = useState<TimetableSlot[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [questionBank, setQuestionBank] = useState<QuestionBankItem[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentSet[]>([]);
+  const [authConfig, setAuthConfig] = useState<InstitutionalAuthorizationConfig>(DEFAULT_AUTHORIZATION_CONFIG);
+  const [isAuthorizationSettingsOpen, setIsAuthorizationSettingsOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Modal display states
@@ -90,6 +107,9 @@ export default function App() {
     setDeposits(data.deposits);
     setTimetable(data.timetable);
     setAttendance(data.attendance || []);
+    setQuestionBank(data.questionBank || []);
+    setAssignments(data.assignments || []);
+    setAuthConfig(data.authConfig || DEFAULT_AUTHORIZATION_CONFIG);
     setIsLoaded(true);
   }, []);
 
@@ -105,8 +125,17 @@ export default function App() {
       deposits,
       timetable,
       attendance,
+      questionBank,
+      assignments,
+      authConfig,
     });
-  }, [students, faculty, subjects, exams, results, deposits, timetable, attendance, isLoaded]);
+  }, [students, faculty, subjects, exams, results, deposits, timetable, attendance, questionBank, assignments, authConfig, isLoaded]);
+
+  // Authorization Config Handler
+  const handleSaveAuthConfig = (newConfig: InstitutionalAuthorizationConfig) => {
+    setAuthConfig(newConfig);
+    saveItemToStorage('biley_academy_auth_config_v1', newConfig);
+  };
 
   // Students Handlers
   const handleAddStudent = (newStudent: Student) => {
@@ -121,6 +150,40 @@ export default function App() {
 
   const handleDeleteStudent = (studentId: string) => {
     setStudents((prev) => prev.filter((s) => s.id !== studentId));
+  };
+
+  // Question Bank Handlers
+  const handleSaveQuestion = (question: QuestionBankItem) => {
+    setQuestionBank((prev) => {
+      const idx = prev.findIndex((q) => q.id === question.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = question;
+        return next;
+      }
+      return [question, ...prev];
+    });
+  };
+
+  const handleDeleteQuestion = (questionId: string) => {
+    setQuestionBank((prev) => prev.filter((q) => q.id !== questionId));
+  };
+
+  // Assignment Handlers
+  const handleSaveAssignment = (assignment: AssignmentSet) => {
+    setAssignments((prev) => {
+      const idx = prev.findIndex((a) => a.id === assignment.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = assignment;
+        return next;
+      }
+      return [assignment, ...prev];
+    });
+  };
+
+  const handleDeleteAssignment = (assignmentId: string) => {
+    setAssignments((prev) => prev.filter((a) => a.id !== assignmentId));
   };
 
   // Subjects Handlers
@@ -263,6 +326,8 @@ export default function App() {
       setDeposits(initial.deposits);
       setTimetable(initial.timetable);
       setAttendance(initial.attendance || []);
+      setQuestionBank(initial.questionBank || []);
+      setAssignments(initial.assignments || []);
     }
   };
 
@@ -275,6 +340,8 @@ export default function App() {
     setDeposits(restoredData.deposits);
     setTimetable(restoredData.timetable);
     setAttendance(restoredData.attendance || []);
+    setQuestionBank(restoredData.questionBank || []);
+    setAssignments(restoredData.assignments || []);
     saveToStorage(restoredData);
   };
 
@@ -318,6 +385,7 @@ export default function App() {
         onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
         onAdminLogout={handleAdminLogout}
         onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+        onOpenAuthorizationSettings={() => setIsAuthorizationSettingsOpen(true)}
       />
 
       {/* Main Navigation Bar */}
@@ -330,6 +398,8 @@ export default function App() {
         resultsCount={results.length}
         feeDepositsCount={deposits.length}
         attendanceRecordsCount={attendance.length}
+        questionBankCount={questionBank.length}
+        assignmentCount={assignments.length}
       />
 
       {/* Main Content Area */}
@@ -421,6 +491,22 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'question-bank' && (
+          <QuestionBankView
+            questionBank={questionBank}
+            assignments={assignments}
+            subjects={subjects}
+            faculty={faculty}
+            onSaveQuestion={handleSaveQuestion}
+            onDeleteQuestion={handleDeleteQuestion}
+            onSaveAssignment={handleSaveAssignment}
+            onDeleteAssignment={handleDeleteAssignment}
+            currentAdmin={currentAdmin}
+            onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+            onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+          />
+        )}
+
         {activeTab === 'exams' && (
           <ExamsView
             exams={exams}
@@ -448,6 +534,7 @@ export default function App() {
             currentAdmin={currentAdmin}
             onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
             onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+            onOpenAuthorizationSettings={() => setIsAuthorizationSettingsOpen(true)}
           />
         )}
 
@@ -465,6 +552,7 @@ export default function App() {
             currentAdmin={currentAdmin}
             onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
             onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+            onOpenAuthorizationSettings={() => setIsAuthorizationSettingsOpen(true)}
           />
         )}
 
@@ -478,6 +566,8 @@ export default function App() {
             deposits={deposits}
             timetable={timetable}
             attendance={attendance}
+            assignments={assignments}
+            questionBank={questionBank}
             onOpenFeeDepositModal={(stId) => handleQuickFeeDeposit(stId)}
             onViewReceipt={(dep) => setSelectedReceiptDeposit(dep)}
             onViewReportCard={(res) => setSelectedReportCardResult(res)}
@@ -492,7 +582,8 @@ export default function App() {
         <ReceiptModal
           deposit={selectedReceiptDeposit}
           student={receiptStudent}
-          allDeposits={deposits}
+          authConfig={authConfig}
+          onUpdateAuthConfig={handleSaveAuthConfig}
           onClose={() => setSelectedReceiptDeposit(null)}
         />
       )}
@@ -502,6 +593,8 @@ export default function App() {
           result={selectedReportCardResult}
           student={reportCardStudent}
           exam={reportCardExam}
+          authConfig={authConfig}
+          onUpdateAuthConfig={handleSaveAuthConfig}
           onClose={() => setSelectedReportCardResult(null)}
         />
       )}
@@ -512,6 +605,19 @@ export default function App() {
           onClose={() => setSelectedIdCardStudent(null)}
         />
       )}
+
+      {/* Institutional Authorization & Signatory Configuration Modal */}
+      <AuthorizationSettingsModal
+        isOpen={isAuthorizationSettingsOpen}
+        onClose={() => setIsAuthorizationSettingsOpen(false)}
+        authConfig={authConfig}
+        onSaveAuthConfig={handleSaveAuthConfig}
+        currentAdmin={currentAdmin}
+        onUpdateCurrentAdmin={(admin) => {
+          setCurrentAdmin(admin);
+          saveItemToStorage('biley_academy_admin_user_v1', admin);
+        }}
+      />
 
       {/* Admin Login Modal */}
       <AdminLoginModal

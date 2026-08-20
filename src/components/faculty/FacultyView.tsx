@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Faculty, Subject, TimetableSlot, ClassLevel, StreamType, BatchShift, AdminUser } from '../../types';
 import { CLASS_LEVELS, STREAMS_FOR_CLASS } from '../../utils/academicUtils';
-import { evaluateSectionAuthorization } from '../../utils/auth';
+import { evaluateSectionAuthorization, hasPermission } from '../../utils/auth';
 import { SectionAuthHeader } from '../common/SectionAuthHeader';
 import {
   Users,
@@ -74,6 +74,8 @@ export const FacultyView: React.FC<FacultyViewProps> = ({
   onOpenPermissionsMatrix,
 }) => {
   const auth = evaluateSectionAuthorization(currentAdmin, 'faculty');
+  const canManageFaculty = auth.canWrite && hasPermission(currentAdmin, 'FACULTY_ALLOCATION_WRITE');
+  const canManageTimetable = auth.canWrite && hasPermission(currentAdmin, 'TIMETABLE_MANAGE');
   const [activeTab, setActiveTab] = useState<'directory' | 'timetable'>('directory');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -313,7 +315,7 @@ export const FacultyView: React.FC<FacultyViewProps> = ({
             </button>
           </div>
 
-          {auth.canWrite ? (
+          {canManageFaculty ? (
             <button
               onClick={handleOpenAdd}
               id="add-faculty-btn"
@@ -438,26 +440,28 @@ export const FacultyView: React.FC<FacultyViewProps> = ({
                   {/* Actions */}
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                     <span className="font-mono text-[10px] text-slate-400">{fac.id}</span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => handleOpenEdit(fac)}
-                        className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded cursor-pointer"
-                        title="Edit Faculty Details"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Remove ${fac.name} from faculty directory?`)) {
-                            onDeleteFaculty(fac.id);
-                          }
-                        }}
-                        className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
-                        title="Delete Faculty"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    {canManageFaculty && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleOpenEdit(fac)}
+                          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded cursor-pointer"
+                          title="Edit Faculty Details"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Remove ${fac.name} from faculty directory?`)) {
+                              onDeleteFaculty(fac.id);
+                            }
+                          }}
+                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
+                          title="Delete Faculty"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                 </div>
@@ -500,7 +504,7 @@ export const FacultyView: React.FC<FacultyViewProps> = ({
               </div>
 
               {/* Add New Slot Button */}
-              {auth.canWrite && (
+              {canManageTimetable && (
                 <button
                   id="add-timetable-slot-btn"
                   onClick={handleOpenAddSlot}
@@ -521,7 +525,7 @@ export const FacultyView: React.FC<FacultyViewProps> = ({
                 <div className="p-12 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl space-y-3">
                   <Clock className="w-8 h-8 mx-auto text-slate-300" />
                   <p>No classes scheduled for {selectedDay}. Click "+ Schedule Time Slot" to allocate lectures.</p>
-                  {auth.canWrite && (
+                  {canManageTimetable && (
                     <button
                       onClick={handleOpenAddSlot}
                       className="px-3.5 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg cursor-pointer hover:bg-slate-800"
@@ -555,13 +559,15 @@ export const FacultyView: React.FC<FacultyViewProps> = ({
                         <tr key={slot.id} className="hover:bg-slate-50/70 transition-colors group">
                           <td className="py-3.5 px-4">
                             <button
-                              onClick={() => auth.canWrite && handleOpenEditSlot(slot)}
+                              onClick={() => canManageTimetable && handleOpenEditSlot(slot)}
                               className="font-mono font-bold text-slate-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer text-left"
-                              title="Click to edit this time slot"
+                              title={canManageTimetable ? "Click to edit this time slot" : slot.timeSlot}
                             >
                               <Clock className="w-3.5 h-3.5 text-purple-700 shrink-0" />
                               <span>{slot.timeSlot}</span>
-                              <Edit2 className="w-3 h-3 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
+                              {canManageTimetable && (
+                                <Edit2 className="w-3 h-3 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
+                              )}
                             </button>
                           </td>
                           <td className="py-3.5 px-4">
@@ -582,28 +588,32 @@ export const FacultyView: React.FC<FacultyViewProps> = ({
                             </span>
                           </td>
                           <td className="py-3.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => handleOpenEditSlot(slot)}
-                                id={`edit-slot-${slot.id}`}
-                                className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors"
-                                title="Edit Timetable Slot"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (confirm(`Remove timetable slot "${slot.timeSlot}" for Class ${slot.classLevel}?`)) {
-                                    onDeleteTimetableSlot(slot.id);
-                                  }
-                                }}
-                                id={`delete-slot-${slot.id}`}
-                                className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors"
-                                title="Delete Slot"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                            {canManageTimetable ? (
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => handleOpenEditSlot(slot)}
+                                  id={`edit-slot-${slot.id}`}
+                                  className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors"
+                                  title="Edit Timetable Slot"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`Remove timetable slot "${slot.timeSlot}" for Class ${slot.classLevel}?`)) {
+                                      onDeleteTimetableSlot(slot.id);
+                                    }
+                                  }}
+                                  id={`delete-slot-${slot.id}`}
+                                  className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors"
+                                  title="Delete Slot"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 font-medium">Read-Only</span>
+                            )}
                           </td>
                         </tr>
                       );

@@ -1,16 +1,58 @@
 import React, { useState } from 'react';
-import { Exam, ExamResult, Student } from '../../types';
-import { Printer, X, Award, GraduationCap, MapPin, Phone, CheckCircle2, Loader2 } from 'lucide-react';
+import { Exam, ExamResult, Student, InstitutionalAuthorizationConfig } from '../../types';
+import { DEFAULT_AUTHORIZATION_CONFIG } from '../../utils/storage';
+import {
+  Printer,
+  X,
+  Award,
+  GraduationCap,
+  MapPin,
+  Phone,
+  CheckCircle2,
+  Loader2,
+  Edit3,
+  Check,
+} from 'lucide-react';
 
 interface ReportCardModalProps {
   result: ExamResult | null;
   student: Student | null;
   exam: Exam | null;
   onClose: () => void;
+  authConfig?: InstitutionalAuthorizationConfig;
+  onUpdateAuthConfig?: (config: InstitutionalAuthorizationConfig) => void;
 }
 
-export const ReportCardModal: React.FC<ReportCardModalProps> = ({ result, student, exam, onClose }) => {
+export const ReportCardModal: React.FC<ReportCardModalProps> = ({
+  result,
+  student,
+  exam,
+  onClose,
+  authConfig = DEFAULT_AUTHORIZATION_CONFIG,
+  onUpdateAuthConfig,
+}) => {
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isEditingAuth, setIsEditingAuth] = useState(false);
+
+  // Editable signatory fields
+  const [mentorName, setMentorName] = useState(
+    authConfig.classMentorDefaultName || 'Prof. Ananya Sen'
+  );
+  const [mentorDesignation, setMentorDesignation] = useState(
+    authConfig.classMentorDefaultDesignation || 'Class Mentor & Faculty In-Charge'
+  );
+  const [directorName, setDirectorName] = useState(
+    authConfig.directorName || 'Dr. Birendra Nath Biley'
+  );
+  const [directorDesignation, setDirectorDesignation] = useState(
+    authConfig.directorDesignation || 'Academic Director'
+  );
+  const [directorSubtext, setDirectorSubtext] = useState(
+    authConfig.directorAuthoritySubtext || 'Biley Academy Board'
+  );
+  const [sealName, setSealName] = useState(
+    authConfig.sealInstitutionName || 'BILEY ACADEMY'
+  );
 
   if (!result || !student || !exam) return null;
 
@@ -20,6 +62,21 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({ result, studen
       window.print();
       setIsPrinting(false);
     }, 150);
+  };
+
+  const handleSaveAuth = () => {
+    if (onUpdateAuthConfig) {
+      onUpdateAuthConfig({
+        ...authConfig,
+        classMentorDefaultName: mentorName,
+        classMentorDefaultDesignation: mentorDesignation,
+        directorName,
+        directorDesignation,
+        directorAuthoritySubtext: directorSubtext,
+        sealInstitutionName: sealName,
+      });
+    }
+    setIsEditingAuth(false);
   };
 
   return (
@@ -32,7 +89,21 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({ result, studen
             <Award className="w-5 h-5 text-amber-400" />
             <span className="font-semibold text-sm">Official Academic Performance Card</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsEditingAuth(!isEditingAuth)}
+              id="edit-report-auth-btn"
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer border ${
+                isEditingAuth
+                  ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-xs'
+                  : 'bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700'
+              }`}
+              title="Edit Mentor & Director Signatory Names"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>{isEditingAuth ? 'Done Editing' : 'Edit Authorization'}</span>
+            </button>
+
             <button
               onClick={handlePrint}
               disabled={isPrinting}
@@ -62,6 +133,69 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({ result, studen
           </div>
         </div>
 
+        {/* Authorization Inline Edit Toolbar */}
+        {isEditingAuth && (
+          <div className="bg-amber-50 border-b border-amber-200 p-4 print:hidden animate-in fade-in space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1.5 uppercase tracking-wide">
+                <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                Customize Report Card Signatories & Authorization
+              </span>
+              <button
+                onClick={handleSaveAuth}
+                className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Save to Settings</span>
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-700">
+                  Class Mentor Name & Title:
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input
+                    type="text"
+                    value={mentorName}
+                    onChange={(e) => setMentorName(e.target.value)}
+                    placeholder="Mentor Name"
+                    className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-md font-bold text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-amber-500 text-xs"
+                  />
+                  <input
+                    type="text"
+                    value={mentorDesignation}
+                    onChange={(e) => setMentorDesignation(e.target.value)}
+                    placeholder="Designation"
+                    className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-md text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-amber-500 text-xs"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-700">
+                  Academic Director Name & Subtext:
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input
+                    type="text"
+                    value={directorName}
+                    onChange={(e) => setDirectorName(e.target.value)}
+                    placeholder="Director Name"
+                    className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-md font-bold text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-amber-500 text-xs"
+                  />
+                  <input
+                    type="text"
+                    value={directorSubtext}
+                    onChange={(e) => setDirectorSubtext(e.target.value)}
+                    placeholder="Board / Authority"
+                    className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-md text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-amber-500 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Printable Report Card Content */}
         <div id="printable-report-card-content" className="p-8 bg-white text-slate-800 font-sans">
           
@@ -72,7 +206,9 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({ result, studen
                 <GraduationCap className="w-7 h-7" />
               </div>
               <div className="text-left">
-                <h1 className="text-2xl font-black tracking-tight text-slate-950">BILEY ACADEMY</h1>
+                <h1 className="text-2xl font-black tracking-tight text-slate-950">
+                  {sealName}
+                </h1>
                 <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-widest">
                   Academic Progress & Evaluation Report (Class 5 - 12)
                 </p>
@@ -192,21 +328,22 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({ result, studen
           {/* Signature & Seal Footer */}
           <div className="flex items-end justify-between pt-6 border-t border-slate-200">
             <div className="text-center">
-              <div className="w-32 border-b border-slate-400 mb-1"></div>
-              <p className="text-[11px] font-bold text-slate-800">Class Mentor</p>
-              <p className="text-[9px] text-slate-500">Faculty In-Charge</p>
+              <div className="w-36 border-b border-slate-400 mb-1"></div>
+              <p className="text-xs font-bold text-slate-800">{mentorName}</p>
+              <p className="text-[9px] text-slate-500">{mentorDesignation}</p>
             </div>
 
             <div className="w-20 h-20 rounded-full border-2 border-double border-slate-700 flex flex-col items-center justify-center p-1 text-center select-none opacity-80 rotate-3">
-              <span className="text-[7px] font-bold uppercase tracking-tight text-slate-700">BILEY ACADEMY</span>
+              <span className="text-[7px] font-bold uppercase tracking-tight text-slate-700">{sealName}</span>
               <span className="text-[9px] font-black text-slate-900">VERIFIED</span>
               <span className="text-[7px] text-slate-500 font-mono">{result.publishedDate}</span>
             </div>
 
             <div className="text-center">
-              <div className="w-36 border-b border-slate-400 mb-1"></div>
-              <p className="text-[11px] font-bold text-slate-800">Academic Director</p>
-              <p className="text-[9px] text-slate-500">Biley Academy Board</p>
+              <div className="w-40 border-b border-slate-400 mb-1"></div>
+              <p className="text-xs font-bold text-slate-800">{directorName}</p>
+              <p className="text-[10px] font-semibold text-slate-700">{directorDesignation}</p>
+              <p className="text-[9px] text-slate-500">{directorSubtext}</p>
             </div>
           </div>
 

@@ -12,7 +12,10 @@ export type Permission =
   | 'FEE_COLLECTION_WRITE'
   | 'FEE_TRANSACTION_DELETE'
   | 'FINANCIAL_REPORTS_VIEW'
-  | 'ADMIN_SETTINGS_RESET';
+  | 'QUESTION_BANK_MANAGE'
+  | 'ASSIGNMENT_CREATE'
+  | 'ADMIN_SETTINGS_RESET'
+  | 'DATABASE_BACKUP_RESTORE';
 
 export interface RoleConfig {
   role: AdminRole;
@@ -27,7 +30,7 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleConfig> = {
     role: 'Super Admin / Director',
     title: 'Director & Full Institute Authority',
     badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
-    description: 'Unrestricted master access across admissions, faculty, curriculum, examinations, attendance, and fee collections.',
+    description: 'Unrestricted master access across admissions, faculty, curriculum, examinations, attendance, question bank, and fee collections.',
     permissions: [
       'STUDENT_ADMISSION_WRITE',
       'STUDENT_DELETE',
@@ -40,14 +43,17 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleConfig> = {
       'FEE_COLLECTION_WRITE',
       'FEE_TRANSACTION_DELETE',
       'FINANCIAL_REPORTS_VIEW',
+      'QUESTION_BANK_MANAGE',
+      'ASSIGNMENT_CREATE',
       'ADMIN_SETTINGS_RESET',
+      'DATABASE_BACKUP_RESTORE',
     ],
   },
   'Academic Administrator': {
     role: 'Academic Administrator',
     title: 'Academic Affairs & Admissions Dean',
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
-    description: 'Authorized for student admissions, subject curriculum, attendance administration, examination scheduling, and marks evaluation.',
+    description: 'Authorized for student admissions, subject curriculum, attendance administration, question bank, examination scheduling, and marks evaluation.',
     permissions: [
       'STUDENT_ADMISSION_WRITE',
       'SUBJECT_DISTRIBUTION_WRITE',
@@ -56,6 +62,9 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleConfig> = {
       'ATTENDANCE_MARK',
       'EXAMINATION_SCHEDULE_WRITE',
       'RESULTS_MARKS_ENTRY',
+      'QUESTION_BANK_MANAGE',
+      'ASSIGNMENT_CREATE',
+      'DATABASE_BACKUP_RESTORE',
     ],
   },
   'Accounts & Cashier': {
@@ -67,17 +76,20 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleConfig> = {
       'FEE_COLLECTION_WRITE',
       'FEE_TRANSACTION_DELETE',
       'FINANCIAL_REPORTS_VIEW',
+      'DATABASE_BACKUP_RESTORE',
     ],
   },
   'Faculty Mentor': {
     role: 'Faculty Mentor',
     title: 'Senior Faculty & Exam Evaluator',
     badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
-    description: 'Authorized for daily student attendance marking, weekly lecture timetables, and exam result marks scoring.',
+    description: 'Authorized for daily student attendance marking, weekly lecture timetables, question authoring, assignment creation, and exam result marks scoring.',
     permissions: [
       'TIMETABLE_MANAGE',
       'ATTENDANCE_MARK',
       'RESULTS_MARKS_ENTRY',
+      'QUESTION_BANK_MANAGE',
+      'ASSIGNMENT_CREATE',
     ],
   },
 };
@@ -230,6 +242,26 @@ export function evaluateSectionAuthorization(
         roleTitle: role,
         badgeLabel: role === 'Faculty Mentor' ? 'Faculty Daily Attendance' : 'Attendance Master Controller',
         badgeStyle: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+      };
+
+    case 'question-bank':
+      if (role === 'Accounts & Cashier') {
+        return {
+          isAllowed: true,
+          canWrite: false,
+          roleTitle: role,
+          badgeLabel: 'Question Bank (Read-Only)',
+          badgeStyle: 'bg-slate-100 text-slate-700 border-slate-300',
+          notice: 'Question authoring and assignment creation are reserved for Faculty Mentors and Academic Administrators.',
+          requiredRole: 'Faculty Mentor / Academic Admin',
+        };
+      }
+      return {
+        isAllowed: true,
+        canWrite: true,
+        roleTitle: role,
+        badgeLabel: 'Question Authoring & Assignment Authority',
+        badgeStyle: 'bg-amber-50 text-amber-800 border-amber-300',
       };
 
     case 'exams':
