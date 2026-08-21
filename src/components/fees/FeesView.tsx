@@ -17,6 +17,7 @@ import {
 } from '../../utils/academicUtils';
 import { evaluateSectionAuthorization, hasPermission } from '../../utils/auth';
 import { SectionAuthHeader } from '../common/SectionAuthHeader';
+import { RestrictionBanner } from '../common/RestrictionBanner';
 import { SessionRevenueGoalTracker } from './SessionRevenueGoalTracker';
 import confetti from 'canvas-confetti';
 import {
@@ -51,6 +52,7 @@ import {
 interface FeesViewProps {
   students: Student[];
   deposits: FeeDeposit[];
+  authConfig?: import('../../types').InstitutionalAuthorizationConfig;
   onAddDeposit: (deposit: FeeDeposit) => void;
   onDeleteDeposit: (depositId: string) => void;
   onViewReceipt: (deposit: FeeDeposit) => void;
@@ -62,11 +64,13 @@ interface FeesViewProps {
   onOpenAdminLogin?: () => void;
   onOpenPermissionsMatrix?: () => void;
   onOpenAuthorizationSettings?: () => void;
+  onOpenAuthSettings?: () => void;
 }
 
 export const FeesView: React.FC<FeesViewProps> = ({
   students,
   deposits,
+  authConfig,
   onAddDeposit,
   onDeleteDeposit,
   onViewReceipt,
@@ -78,10 +82,13 @@ export const FeesView: React.FC<FeesViewProps> = ({
   onOpenAdminLogin,
   onOpenPermissionsMatrix,
   onOpenAuthorizationSettings,
+  onOpenAuthSettings,
 }) => {
   const auth = evaluateSectionAuthorization(currentAdmin, 'fees');
-  const canCollectFees = auth.canWrite && hasPermission(currentAdmin, 'FEES_COLLECT_DEPOSIT');
+  const isFeeDepositLocked = authConfig?.isFeeDepositLocked || false;
+  const canCollectFees = auth.canWrite && hasPermission(currentAdmin, 'FEES_COLLECT_DEPOSIT') && !isFeeDepositLocked;
   const canManageStructures = auth.canWrite && hasPermission(currentAdmin, 'FEES_MANAGE_STRUCTURE');
+  const handleOpenAuthSettings = onOpenAuthorizationSettings || onOpenAuthSettings;
   const [activeTab, setActiveTab] = useState<'deposits' | 'dues' | 'structure'>(
     initialActiveTab || 'deposits'
   );
@@ -326,6 +333,14 @@ export const FeesView: React.FC<FeesViewProps> = ({
         onOpenPermissionsMatrix={onOpenPermissionsMatrix}
       />
 
+      {/* Institutional Policy Restriction Banner (if Fee Deposit locked) */}
+      <RestrictionBanner
+        type="fee_deposit"
+        authConfig={authConfig}
+        currentAdmin={currentAdmin}
+        onOpenSettings={handleOpenAuthSettings}
+      />
+
       {/* Header & Main Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
         <div>
@@ -378,9 +393,9 @@ export const FeesView: React.FC<FeesViewProps> = ({
               </span>
             </button>
 
-            {onOpenAuthorizationSettings && (
+            {handleOpenAuthSettings && (
               <button
-                onClick={onOpenAuthorizationSettings}
+                onClick={handleOpenAuthSettings}
                 id="fee-signatory-settings-btn"
                 title="Edit Authorized Accounts Signatory Name, Designation, and Receipt Seal"
                 className="px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 text-emerald-800 hover:bg-emerald-100 bg-emerald-50 border border-emerald-200"
@@ -391,7 +406,12 @@ export const FeesView: React.FC<FeesViewProps> = ({
             )}
           </div>
 
-          {canCollectFees ? (
+          {isFeeDepositLocked ? (
+            <div className="flex items-center gap-1.5 px-4 py-2.5 bg-rose-50 border border-rose-300 text-rose-800 rounded-xl text-xs font-bold whitespace-nowrap">
+              <Lock className="w-4 h-4 text-rose-600" />
+              <span>Deposits Restricted by Policy</span>
+            </div>
+          ) : canCollectFees ? (
             <button
               onClick={() => handleOpenDepositModal()}
               id="open-deposit-modal-btn"

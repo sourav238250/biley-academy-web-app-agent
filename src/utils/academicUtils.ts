@@ -402,3 +402,245 @@ export function getAttendanceStatusBadge(status: AttendanceStatus): {
   }
 }
 
+// ----------------------------------------------------
+// FINANCIAL & DISBURSEMENT LEDGER UTILITIES
+// ----------------------------------------------------
+
+export interface LedgerMeta {
+  ledger: import('../types').DisbursementLedgerCategory;
+  title: string;
+  description: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  iconColor: string;
+  cardBorder: string;
+  commonSubCategories: string[];
+}
+
+export const LEDGER_DEFINITIONS: Record<import('../types').DisbursementLedgerCategory, LedgerMeta> = {
+  Salary: {
+    ledger: 'Salary',
+    title: 'Staff & Faculty Remuneration',
+    description: 'Faculty monthly compensation, guest lecturer honorariums, administrative assistants & lab staff salaries.',
+    badgeBg: 'bg-blue-50',
+    badgeText: 'text-blue-700',
+    badgeBorder: 'border-blue-200',
+    iconColor: 'text-blue-600',
+    cardBorder: 'border-blue-100',
+    commonSubCategories: [
+      'Senior Faculty Monthly Remuneration',
+      'Subject Lead Honorarium',
+      'Assistant Faculty Stipend',
+      'Administrative & Cashier Salary',
+      'Lab Assistant & Technician Pay',
+      'Invigilation & Paper Setting Honorarium',
+    ],
+  },
+  Vendors: {
+    ledger: 'Vendors',
+    title: 'Suppliers & Educational Vendors',
+    description: 'Booklets printing, stationery, lab consumables, study materials, student uniforms & answer sheets.',
+    badgeBg: 'bg-amber-50',
+    badgeText: 'text-amber-700',
+    badgeBorder: 'border-amber-200',
+    iconColor: 'text-amber-600',
+    cardBorder: 'border-amber-100',
+    commonSubCategories: [
+      'Study Materials & DPP Printing',
+      'Board Mock Test Booklets & OMR Sheets',
+      'Science Laboratory Chemicals & Glassware',
+      'Student ID Cards & Certificates Printing',
+      'Classroom Stationery & Whiteboard Markers',
+      'Curriculum Textbooks & Reference Guides',
+    ],
+  },
+  Contractor: {
+    ledger: 'Contractor',
+    title: 'Maintenance & Service Contractors',
+    description: 'Electrical rigging, HVAC air conditioning, facility repairs, plumbing, painting & campus security.',
+    badgeBg: 'bg-emerald-50',
+    badgeText: 'text-emerald-700',
+    badgeBorder: 'border-emerald-200',
+    iconColor: 'text-emerald-600',
+    cardBorder: 'border-emerald-100',
+    commonSubCategories: [
+      'HVAC Air Conditioning Maintenance & Servicing',
+      'Electrical Cabling & Digital Classroom Network',
+      'Campus Security & Surveillance AMC',
+      'Sanitization, Deep Cleaning & Pest Control',
+      'Classroom Acoustic & Civil Repair Work',
+      'Fire Safety Equipment Inspection',
+    ],
+  },
+  Assets: {
+    ledger: 'Assets',
+    title: 'Capital Equipment & Fixed Assets',
+    description: 'Smart interactive whiteboards, desktop workstations, lab apparatus, high-capacity UPS & classroom furniture.',
+    badgeBg: 'bg-purple-50',
+    badgeText: 'text-purple-700',
+    badgeBorder: 'border-purple-200',
+    iconColor: 'text-purple-600',
+    cardBorder: 'border-purple-100',
+    commonSubCategories: [
+      'Computer Lab Workstation Upgrades',
+      'Interactive Digital Whiteboard Displays',
+      'High-Capacity Solar/Inverter Power Backup',
+      'Optics & Physics Precision Lab Apparatus',
+      'Ergonomic Classroom Benches & Podiums',
+      'Audio-Visual Projectors & Microphones',
+    ],
+  },
+  Grocery: {
+    ledger: 'Grocery',
+    title: 'Cafeteria, Pantry & Provisions',
+    description: 'Faculty pantry consumables, tea/coffee, mineral water dispensaries, cafeteria groceries & student refreshments.',
+    badgeBg: 'bg-teal-50',
+    badgeText: 'text-teal-700',
+    badgeBorder: 'border-teal-200',
+    iconColor: 'text-teal-600',
+    cardBorder: 'border-teal-100',
+    commonSubCategories: [
+      'Faculty Pantry, Beverages & Consumables',
+      'Packaged Mineral Water Jar Refills',
+      'Examination Days Refreshments & Snacks',
+      'Sanitary, Soap & Pantry Paper Supplies',
+      'Staff Meeting Hospitality & Tea Service',
+    ],
+  },
+  Utilities: {
+    ledger: 'Utilities',
+    title: 'Institutional Utilities & Infrastructure',
+    description: 'Electricity power bills, dedicated symmetric fiber broadband, municipal water taxes & leased premises.',
+    badgeBg: 'bg-indigo-50',
+    badgeText: 'text-indigo-700',
+    badgeBorder: 'border-indigo-200',
+    iconColor: 'text-indigo-600',
+    cardBorder: 'border-indigo-100',
+    commonSubCategories: [
+      'Electricity & Power Utilities (Commercial Meter)',
+      'High-Speed Enterprise Broadband Internet',
+      'Commercial Property Lease & Facility Rent',
+      'Municipal Corporation Water & Tax Dues',
+      'Cloud Server Hosting & SMS Gateway Gateway',
+    ],
+  },
+  Marketing: {
+    ledger: 'Marketing',
+    title: 'Admissions Outreach & Promotion',
+    description: 'Street hoardings, metro station banners, digital social campaigns, information brochures & orientation seminars.',
+    badgeBg: 'bg-rose-50',
+    badgeText: 'text-rose-700',
+    badgeBorder: 'border-rose-200',
+    iconColor: 'text-rose-600',
+    cardBorder: 'border-rose-100',
+    commonSubCategories: [
+      'Academic Session Hoardings & Metro Banners',
+      'Digital Ads & Local Social Media Outreach',
+      'School Outreach Flyers & Information Prospectus',
+      'Career Guidance & Scholarship Seminar Costs',
+      'Academic Merit Felicitation Banners',
+    ],
+  },
+  Miscellaneous: {
+    ledger: 'Miscellaneous',
+    title: 'Contingency & General Operations',
+    description: 'Courier & postal dispatches, bank transactional charges, audit filings, legal compliance & petty emergency cash.',
+    badgeBg: 'bg-slate-100',
+    badgeText: 'text-slate-700',
+    badgeBorder: 'border-slate-200',
+    iconColor: 'text-slate-600',
+    cardBorder: 'border-slate-100',
+    commonSubCategories: [
+      'Official Postal Dispatch & DTDC Courier',
+      'Statutory Audit, CA & Legal Compliance',
+      'Emergency Contingency & Petty Cash Refill',
+      'Bank Guarantee & POS Transaction Surcharges',
+      'Staff First-Aid & Emergency Medical Kit',
+    ],
+  },
+};
+
+export function generateDisbursementVoucherNumber(): string {
+  const year = new Date().getFullYear();
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const serial = Math.floor(10 + Math.random() * 90);
+  return `PV-${year}-${serial.toString().padStart(3, '0')}-${randomSuffix}`;
+}
+
+export function computeProfitAndLossSummary(
+  deposits: FeeDeposit[],
+  disbursements: import('../types').PaymentDisbursement[],
+  students: Student[],
+  customBudgetCap?: number,
+  customReserveTarget?: number
+): import('../types').ProfitAndLossSummary {
+  // 1. Gross Revenue Inflow from collections
+  const grossRevenue = deposits.reduce((sum, d) => sum + (d.amountPaid || 0), 0);
+
+  // 2. Projected Annual Billable Fee from all active students
+  const projectedAnnualRevenue = students.reduce((sum, student) => {
+    const summary = computeStudentFeeSummary(student, deposits);
+    return sum + (summary.netPayable || 0);
+  }, 0);
+
+  // 3. Total Disbursed (Paid / Realized Outflow)
+  const totalDisbursed = disbursements
+    .filter((d) => d.status === 'Disbursed')
+    .reduce((sum, d) => sum + (d.amount || 0), 0);
+
+  // 4. Pending / Queued Disbursements
+  const pendingDisbursements = disbursements
+    .filter((d) => d.status === 'Approved' || d.status === 'Pending Approval')
+    .reduce((sum, d) => sum + (d.amount || 0), 0);
+
+  // 5. Net Operating Profit & Margin
+  const netOperatingProfit = grossRevenue - totalDisbursed;
+  const profitMarginPercent = grossRevenue > 0 ? (netOperatingProfit / grossRevenue) * 100 : 0;
+  const projectedAnnualProfit = projectedAnnualRevenue - (totalDisbursed + pendingDisbursements);
+
+  // 6. Ledger-wise breakdown
+  const ledgers: import('../types').DisbursementLedgerCategory[] = [
+    'Salary',
+    'Vendors',
+    'Contractor',
+    'Assets',
+    'Grocery',
+    'Utilities',
+    'Marketing',
+    'Miscellaneous',
+  ];
+
+  const ledgerBreakdown = ledgers.map((ledger) => {
+    const ledgerDisbursements = disbursements.filter(
+      (d) => d.ledger === ledger && d.status === 'Disbursed'
+    );
+    const totalAmount = ledgerDisbursements.reduce((sum, d) => sum + (d.amount || 0), 0);
+    const transactionCount = ledgerDisbursements.length;
+    const percentageOfTotalExpense = totalDisbursed > 0 ? (totalAmount / totalDisbursed) * 100 : 0;
+    const percentageOfRevenue = grossRevenue > 0 ? (totalAmount / grossRevenue) * 100 : 0;
+
+    return {
+      ledger,
+      totalAmount,
+      transactionCount,
+      percentageOfTotalExpense,
+      percentageOfRevenue,
+    };
+  });
+
+  return {
+    grossRevenue,
+    totalDisbursed,
+    pendingDisbursements,
+    netOperatingProfit,
+    profitMarginPercent,
+    projectedAnnualRevenue,
+    projectedAnnualProfit,
+    monthlyDisbursementBudgetCap: customBudgetCap || 350000,
+    minimumProfitReserveTarget: customReserveTarget || 100000,
+    ledgerBreakdown,
+  };
+}
+
+

@@ -12,6 +12,8 @@ import {
   Smartphone,
   HelpCircle,
   FileCheck,
+  Receipt,
+  Wallet,
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -27,6 +29,7 @@ interface NavigationProps {
   attendanceRecordsCount?: number;
   questionBankCount?: number;
   assignmentCount?: number;
+  disbursementsCount?: number;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -38,6 +41,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   attendanceRecordsCount,
   questionBankCount,
   assignmentCount,
+  disbursementsCount,
 }) => {
   const tabs: { id: NavigationTab; label: string; icon: React.FC<any>; badge?: string | number; badgeColor?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -78,6 +82,13 @@ export const Navigation: React.FC<NavigationProps> = ({
       icon: CreditCard,
       badge: pendingDuesCount && pendingDuesCount > 0 ? `${pendingDuesCount} Dues` : undefined,
       badgeColor: 'bg-amber-600',
+    },
+    {
+      id: 'disbursements',
+      label: 'Disbursements & P&L',
+      icon: Wallet,
+      badge: disbursementsCount && disbursementsCount > 0 ? `${disbursementsCount}` : undefined,
+      badgeColor: 'bg-indigo-700',
     },
     {
       id: 'student-portal',

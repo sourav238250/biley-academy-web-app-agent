@@ -10,8 +10,15 @@ export type Permission =
   | 'EXAMINATION_SCHEDULE_WRITE'
   | 'RESULTS_MARKS_ENTRY'
   | 'FEE_COLLECTION_WRITE'
+  | 'FEES_COLLECT_DEPOSIT'
+  | 'FEES_MANAGE_STRUCTURE'
   | 'FEE_TRANSACTION_DELETE'
   | 'FINANCIAL_REPORTS_VIEW'
+  | 'DISBURSEMENT_CREATE'
+  | 'DISBURSEMENT_APPROVE'
+  | 'DISBURSEMENT_DELETE'
+  | 'DISBURSEMENT_VIEW'
+  | 'RESTRICTIONS_MANAGE'
   | 'QUESTION_BANK_MANAGE'
   | 'ASSIGNMENT_CREATE'
   | 'ADMIN_SETTINGS_RESET'
@@ -30,7 +37,7 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleConfig> = {
     role: 'Super Admin / Director',
     title: 'Director & Full Institute Authority',
     badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
-    description: 'Unrestricted master access across admissions, faculty, curriculum, examinations, attendance, question bank, and fee collections.',
+    description: 'Unrestricted master access across admissions, faculty, curriculum, examinations, attendance, question bank, fee collections, ledger disbursements, and profit allocations.',
     permissions: [
       'STUDENT_ADMISSION_WRITE',
       'STUDENT_DELETE',
@@ -41,8 +48,15 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleConfig> = {
       'EXAMINATION_SCHEDULE_WRITE',
       'RESULTS_MARKS_ENTRY',
       'FEE_COLLECTION_WRITE',
+      'FEES_COLLECT_DEPOSIT',
+      'FEES_MANAGE_STRUCTURE',
       'FEE_TRANSACTION_DELETE',
       'FINANCIAL_REPORTS_VIEW',
+      'DISBURSEMENT_CREATE',
+      'DISBURSEMENT_APPROVE',
+      'DISBURSEMENT_DELETE',
+      'DISBURSEMENT_VIEW',
+      'RESTRICTIONS_MANAGE',
       'QUESTION_BANK_MANAGE',
       'ASSIGNMENT_CREATE',
       'ADMIN_SETTINGS_RESET',
@@ -62,6 +76,8 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleConfig> = {
       'ATTENDANCE_MARK',
       'EXAMINATION_SCHEDULE_WRITE',
       'RESULTS_MARKS_ENTRY',
+      'FINANCIAL_REPORTS_VIEW',
+      'DISBURSEMENT_VIEW',
       'QUESTION_BANK_MANAGE',
       'ASSIGNMENT_CREATE',
       'DATABASE_BACKUP_RESTORE',
@@ -71,11 +87,15 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleConfig> = {
     role: 'Accounts & Cashier',
     title: 'Treasury & Fee Cashier',
     badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    description: 'Authorized for fee collection deposits, official receipts, and fee ledger management. Read-only for academic records.',
+    description: 'Authorized for fee collection deposits, official receipts, disbursement payments across ledgers, and profit & loss accounting.',
     permissions: [
       'FEE_COLLECTION_WRITE',
+      'FEES_COLLECT_DEPOSIT',
+      'FEES_MANAGE_STRUCTURE',
       'FEE_TRANSACTION_DELETE',
       'FINANCIAL_REPORTS_VIEW',
+      'DISBURSEMENT_CREATE',
+      'DISBURSEMENT_VIEW',
       'DATABASE_BACKUP_RESTORE',
     ],
   },
@@ -97,11 +117,20 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleConfig> = {
 /**
  * Checks if a user possesses a specific permission
  */
-export function hasPermission(user: AdminUser | null, permission: Permission): boolean {
+export function hasPermission(user: AdminUser | null, permission: Permission | string): boolean {
   if (!user) return false;
   const roleConfig = ROLE_DEFINITIONS[user.role];
   if (!roleConfig) return false;
-  return roleConfig.permissions.includes(permission);
+  
+  // Normalization aliases
+  if (permission === 'FEES_COLLECT_DEPOSIT' && roleConfig.permissions.includes('FEE_COLLECTION_WRITE')) {
+    return true;
+  }
+  if (permission === 'FEE_COLLECTION_WRITE' && roleConfig.permissions.includes('FEES_COLLECT_DEPOSIT')) {
+    return true;
+  }
+
+  return roleConfig.permissions.includes(permission as Permission);
 }
 
 /**
@@ -334,6 +363,37 @@ export function evaluateSectionAuthorization(
         roleTitle: role,
         badgeLabel: 'Fee Collection & Treasury Authorized',
         badgeStyle: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+      };
+
+    case 'disbursements':
+      if (role === 'Faculty Mentor') {
+        return {
+          isAllowed: true,
+          canWrite: false,
+          roleTitle: role,
+          badgeLabel: 'Disbursements & P&L (Restricted - Read Only)',
+          badgeStyle: 'bg-rose-50 text-rose-800 border-rose-300',
+          notice: 'Payment disbursements against profit and institutional ledgers require Accounts or Director authority.',
+          requiredRole: 'Accounts & Cashier / Director',
+        };
+      }
+      if (role === 'Academic Administrator') {
+        return {
+          isAllowed: true,
+          canWrite: false,
+          roleTitle: role,
+          badgeLabel: 'Ledgers & Profit Auditor View',
+          badgeStyle: 'bg-amber-50 text-amber-800 border-amber-300',
+          notice: 'Academic Dean can view financial ledger disbursements and profit margins. Authorizing payments requires Accounts Cashier or Director.',
+          requiredRole: 'Accounts & Cashier / Director',
+        };
+      }
+      return {
+        isAllowed: true,
+        canWrite: true,
+        roleTitle: role,
+        badgeLabel: 'Ledger Disbursements & Profit Allocation Authorized',
+        badgeStyle: 'bg-indigo-50 text-indigo-800 border-indigo-300',
       };
 
     default:

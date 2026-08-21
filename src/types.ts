@@ -28,6 +28,68 @@ export interface AdminUser {
   lastLogin?: string;
 }
 
+export type DisbursementLedgerCategory =
+  | 'Salary'
+  | 'Vendors'
+  | 'Contractor'
+  | 'Assets'
+  | 'Grocery'
+  | 'Utilities'
+  | 'Marketing'
+  | 'Miscellaneous';
+
+export type DisbursementPaymentMode =
+  | 'Bank NEFT / RTGS'
+  | 'Corporate UPI / IMPS'
+  | 'Cheque'
+  | 'Cash Voucher'
+  | 'Debit/Credit Card';
+
+export type DisbursementStatus =
+  | 'Disbursed'
+  | 'Approved'
+  | 'Pending Approval'
+  | 'Cancelled';
+
+export interface PaymentDisbursement {
+  id: string; // e.g. "DISB-2026-001"
+  voucherNo: string; // e.g. "PV-2026-8801"
+  disbursementDate: string; // YYYY-MM-DD
+  ledger: DisbursementLedgerCategory;
+  subCategory: string; // e.g. "Senior Faculty Monthly Remuneration", "Biology Lab Equipment", "Electrical Repairs"
+  payeeName: string; // Beneficiary / Payee
+  payeeContact?: string;
+  payeeAccountOrUpi?: string;
+  amount: number; // Disbursed Amount in INR
+  paymentMode: DisbursementPaymentMode;
+  transactionRef?: string; // UTR Number / Cheque No / Cash Voucher No
+  invoiceBillNo?: string; // Vendor invoice / bill ref
+  authorizedBy: string; // Signatory (e.g. Director / Accounts Officer)
+  purposeDescription: string;
+  status: DisbursementStatus;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface ProfitAndLossSummary {
+  grossRevenue: number;
+  totalDisbursed: number;
+  pendingDisbursements: number;
+  netOperatingProfit: number;
+  profitMarginPercent: number;
+  projectedAnnualRevenue: number;
+  projectedAnnualProfit: number;
+  monthlyDisbursementBudgetCap: number;
+  minimumProfitReserveTarget: number;
+  ledgerBreakdown: {
+    ledger: DisbursementLedgerCategory;
+    totalAmount: number;
+    transactionCount: number;
+    percentageOfTotalExpense: number;
+    percentageOfRevenue: number;
+  }[];
+}
+
 export interface InstitutionalAuthorizationConfig {
   // Director / Super Admin Authorization
   directorName: string;
@@ -56,6 +118,14 @@ export interface InstitutionalAuthorizationConfig {
   // Official Stamp & Academy Seal
   sealInstitutionName: string;
   sealVerificationText: string;
+
+  // Institutional Operational Restrictions & Counters
+  isAdmissionLocked?: boolean;
+  admissionLockReason?: string;
+  isFeeDepositLocked?: boolean;
+  feeDepositLockReason?: string;
+  monthlyDisbursementBudgetCap?: number;
+  minimumProfitReserveTarget?: number;
 }
 
 export type NavigationTab =
@@ -67,6 +137,7 @@ export type NavigationTab =
   | 'exams'
   | 'results'
   | 'fees'
+  | 'disbursements'
   | 'question-bank'
   | 'student-portal';
 

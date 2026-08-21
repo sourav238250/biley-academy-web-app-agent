@@ -9,6 +9,7 @@ import {
   TimetableSlot,
   QuestionBankItem,
   AssignmentSet,
+  PaymentDisbursement,
   InstitutionalAuthorizationConfig,
 } from '../types';
 import {
@@ -25,6 +26,7 @@ import {
   INITIAL_QUESTION_BANK,
   INITIAL_ASSIGNMENT_SETS,
 } from '../data/initialQuestionBankData';
+import { INITIAL_DISBURSEMENTS } from '../data/initialDisbursementsData';
 
 export const DEFAULT_AUTHORIZATION_CONFIG: InstitutionalAuthorizationConfig = {
   directorName: 'Dr. Birendra Nath Biley',
@@ -49,6 +51,13 @@ export const DEFAULT_AUTHORIZATION_CONFIG: InstitutionalAuthorizationConfig = {
 
   sealInstitutionName: 'BILEY ACADEMY',
   sealVerificationText: 'AUTHORIZED & VERIFIED',
+
+  isAdmissionLocked: false,
+  admissionLockReason: '',
+  isFeeDepositLocked: false,
+  feeDepositLockReason: '',
+  monthlyDisbursementBudgetCap: 350000,
+  minimumProfitReserveTarget: 100000,
 };
 
 export interface AppStateData {
@@ -58,6 +67,7 @@ export interface AppStateData {
   exams: Exam[];
   results: ExamResult[];
   deposits: FeeDeposit[];
+  disbursements: PaymentDisbursement[];
   timetable: TimetableSlot[];
   attendance: AttendanceRecord[];
   questionBank: QuestionBankItem[];
@@ -72,6 +82,7 @@ const STORAGE_KEYS = {
   EXAMS: 'biley_academy_exams_v1',
   RESULTS: 'biley_academy_results_v1',
   DEPOSITS: 'biley_academy_deposits_v1',
+  DISBURSEMENTS: 'biley_academy_disbursements_v1',
   TIMETABLE: 'biley_academy_timetable_v1',
   ATTENDANCE: 'biley_academy_attendance_v1',
   QUESTION_BANK: 'biley_academy_question_bank_v1',
@@ -106,6 +117,7 @@ export function loadInitialState(): AppStateData {
     exams: loadFromStorage<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_EXAMS),
     results: loadFromStorage<ExamResult[]>(STORAGE_KEYS.RESULTS, INITIAL_RESULTS),
     deposits: loadFromStorage<FeeDeposit[]>(STORAGE_KEYS.DEPOSITS, INITIAL_DEPOSITS),
+    disbursements: loadFromStorage<PaymentDisbursement[]>(STORAGE_KEYS.DISBURSEMENTS, INITIAL_DISBURSEMENTS),
     timetable: loadFromStorage<TimetableSlot[]>(STORAGE_KEYS.TIMETABLE, INITIAL_TIMETABLE),
     attendance: loadFromStorage<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE),
     questionBank: loadFromStorage<QuestionBankItem[]>(STORAGE_KEYS.QUESTION_BANK, INITIAL_QUESTION_BANK),
@@ -121,6 +133,7 @@ export function saveToStorage(data: AppStateData): void {
   saveItemToStorage(STORAGE_KEYS.EXAMS, data.exams);
   saveItemToStorage(STORAGE_KEYS.RESULTS, data.results);
   saveItemToStorage(STORAGE_KEYS.DEPOSITS, data.deposits);
+  saveItemToStorage(STORAGE_KEYS.DISBURSEMENTS, data.disbursements);
   saveItemToStorage(STORAGE_KEYS.TIMETABLE, data.timetable);
   saveItemToStorage(STORAGE_KEYS.ATTENDANCE, data.attendance);
   saveItemToStorage(STORAGE_KEYS.QUESTION_BANK, data.questionBank);
@@ -137,6 +150,7 @@ export function resetToInitialMockData(): AppStateData {
   localStorage.removeItem(STORAGE_KEYS.EXAMS);
   localStorage.removeItem(STORAGE_KEYS.RESULTS);
   localStorage.removeItem(STORAGE_KEYS.DEPOSITS);
+  localStorage.removeItem(STORAGE_KEYS.DISBURSEMENTS);
   localStorage.removeItem(STORAGE_KEYS.TIMETABLE);
   localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
   localStorage.removeItem(STORAGE_KEYS.QUESTION_BANK);
@@ -158,6 +172,7 @@ export interface BackupPayload {
     exams: number;
     results: number;
     deposits: number;
+    disbursements: number;
     timetable: number;
     attendance: number;
     questionBank: number;
@@ -175,9 +190,9 @@ export function exportDatabaseBackup(data: AppStateData): { filename: string; si
   });
 
   const payload: BackupPayload = {
-    version: '2.2.0',
+    version: '2.3.0',
     institution: 'Biley Academy ERP System',
-    curriculum: 'Standardized Classes 1 to 12 (Math, Physics, Chemistry, Biology, CS, CA, English, Question Bank & Assignments)',
+    curriculum: 'Standardized Classes 1 to 12 (Math, Physics, Chemistry, Biology, CS, CA, English, Question Bank, Fee Receipts, Ledgers & Profit Disbursements)',
     exportTimestamp: now.toISOString(),
     exportDateFormatted: dateFormatted,
     counts: {
@@ -187,6 +202,7 @@ export function exportDatabaseBackup(data: AppStateData): { filename: string; si
       exams: data.exams.length,
       results: data.results.length,
       deposits: data.deposits.length,
+      disbursements: (data.disbursements || []).length,
       timetable: data.timetable.length,
       attendance: (data.attendance || []).length,
       questionBank: (data.questionBank || []).length,
@@ -231,6 +247,9 @@ export function parseDatabaseBackup(jsonString: string): AppStateData {
   }
 
   // Ensure arrays exist with fallbacks
+  if (!Array.isArray(stateData.disbursements)) {
+    stateData.disbursements = INITIAL_DISBURSEMENTS;
+  }
   if (!Array.isArray(stateData.attendance)) {
     stateData.attendance = [];
   }

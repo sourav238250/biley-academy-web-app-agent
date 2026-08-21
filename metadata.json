@@ -1,6 +1,6 @@
 {
   "name": "Remix Remix Biley Academy",
-  "description": "Comprehensive coaching institute management platform for Classes 1 to 12 featuring student admissions, question-answer bank with difficulty levels and topic tags, assignments & question sets, formatted PDF generator for printing, curriculum mapping, faculty allocation, exam scheduling, report cards, and fee receipts.",
+  "description": "Comprehensive coaching institute management platform for Classes 1 to 12 featuring student admissions, question bank & DPP generator, faculty allocation, exam scheduling, report cards, fee receipts, payment disbursements across ledgers against net profit, monthly disbursement ledger PDF/CSV administrative exports, and institutional policy restriction controls.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

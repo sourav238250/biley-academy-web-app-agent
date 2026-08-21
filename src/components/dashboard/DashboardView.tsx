@@ -6,6 +6,7 @@ import {
   Exam,
   ExamResult,
   FeeDeposit,
+  PaymentDisbursement,
   TimetableSlot,
   AttendanceRecord,
   ClassLevel,
@@ -57,6 +58,7 @@ interface DashboardViewProps {
   exams: Exam[];
   results: ExamResult[];
   deposits: FeeDeposit[];
+  disbursements?: PaymentDisbursement[];
   timetable?: TimetableSlot[];
   attendance?: AttendanceRecord[];
   questionBank?: QuestionBankItem[];
@@ -81,6 +83,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   exams,
   results,
   deposits,
+  disbursements = [],
   timetable = [],
   attendance = [],
   questionBank = [],
@@ -121,6 +124,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         exams,
         results,
         deposits,
+        disbursements,
         timetable,
         attendance,
         questionBank,

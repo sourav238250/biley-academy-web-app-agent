@@ -7,6 +7,7 @@ import {
   Exam,
   ExamResult,
   FeeDeposit,
+  PaymentDisbursement,
   TimetableSlot,
   AttendanceRecord,
   AdminUser,
@@ -43,12 +44,14 @@ import { QuestionBankView } from './components/question-bank/QuestionBankView';
 import { ExamsView } from './components/exams/ExamsView';
 import { ResultsView } from './components/results/ResultsView';
 import { FeesView } from './components/fees/FeesView';
+import { DisbursementsView } from './components/disbursements/DisbursementsView';
 import { StudentPortalView } from './components/student-portal/StudentPortalView';
 
 // Printable and detail modals
 import { ReceiptModal } from './components/common/ReceiptModal';
 import { ReportCardModal } from './components/common/ReportCardModal';
 import { IdCardModal } from './components/common/IdCardModal';
+import { DisbursementVoucherModal } from './components/disbursements/DisbursementVoucherModal';
 
 export default function App() {
   // Navigation State
@@ -71,6 +74,7 @@ export default function App() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [results, setResults] = useState<ExamResult[]>([]);
   const [deposits, setDeposits] = useState<FeeDeposit[]>([]);
+  const [disbursements, setDisbursements] = useState<PaymentDisbursement[]>([]);
   const [timetable, setTimetable] = useState<TimetableSlot[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [questionBank, setQuestionBank] = useState<QuestionBankItem[]>([]);
@@ -81,6 +85,7 @@ export default function App() {
 
   // Modal display states
   const [selectedReceiptDeposit, setSelectedReceiptDeposit] = useState<FeeDeposit | null>(null);
+  const [selectedVoucherDisbursement, setSelectedVoucherDisbursement] = useState<PaymentDisbursement | null>(null);
   const [selectedReportCardResult, setSelectedReportCardResult] = useState<ExamResult | null>(null);
   const [selectedIdCardStudent, setSelectedIdCardStudent] = useState<Student | null>(null);
   
@@ -105,6 +110,7 @@ export default function App() {
     setExams(data.exams);
     setResults(data.results);
     setDeposits(data.deposits);
+    setDisbursements(data.disbursements || []);
     setTimetable(data.timetable);
     setAttendance(data.attendance || []);
     setQuestionBank(data.questionBank || []);
@@ -123,18 +129,32 @@ export default function App() {
       exams,
       results,
       deposits,
+      disbursements,
       timetable,
       attendance,
       questionBank,
       assignments,
       authConfig,
     });
-  }, [students, faculty, subjects, exams, results, deposits, timetable, attendance, questionBank, assignments, authConfig, isLoaded]);
+  }, [students, faculty, subjects, exams, results, deposits, disbursements, timetable, attendance, questionBank, assignments, authConfig, isLoaded]);
 
   // Authorization Config Handler
   const handleSaveAuthConfig = (newConfig: InstitutionalAuthorizationConfig) => {
     setAuthConfig(newConfig);
     saveItemToStorage('biley_academy_auth_config_v1', newConfig);
+  };
+
+  // Disbursements Handlers
+  const handleAddDisbursement = (disbursement: PaymentDisbursement) => {
+    setDisbursements((prev) => [disbursement, ...prev]);
+  };
+
+  const handleUpdateDisbursement = (updated: PaymentDisbursement) => {
+    setDisbursements((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+  };
+
+  const handleDeleteDisbursement = (disbursementId: string) => {
+    setDisbursements((prev) => prev.filter((d) => d.id !== disbursementId));
   };
 
   // Students Handlers
@@ -397,6 +417,7 @@ export default function App() {
         examCount={exams.length}
         resultsCount={results.length}
         feeDepositsCount={deposits.length}
+        disbursementsCount={disbursements.length}
         attendanceRecordsCount={attendance.length}
         questionBankCount={questionBank.length}
         assignmentCount={assignments.length}
@@ -413,6 +434,7 @@ export default function App() {
             exams={exams}
             results={results}
             deposits={deposits}
+            disbursements={disbursements}
             timetable={timetable}
             attendance={attendance}
             onNavigateTab={setActiveTab}
@@ -435,6 +457,7 @@ export default function App() {
             subjects={subjects}
             deposits={deposits}
             results={results}
+            authConfig={authConfig}
             onAddStudent={handleAddStudent}
             onUpdateStudent={handleUpdateStudent}
             onDeleteStudent={handleDeleteStudent}
@@ -445,6 +468,7 @@ export default function App() {
             currentAdmin={currentAdmin}
             onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
             onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+            onOpenAuthSettings={() => setIsAuthorizationSettingsOpen(true)}
           />
         )}
 
@@ -542,6 +566,7 @@ export default function App() {
           <FeesView
             students={students}
             deposits={deposits}
+            authConfig={authConfig}
             onAddDeposit={handleAddDeposit}
             onDeleteDeposit={handleDeleteDeposit}
             onViewReceipt={(dep) => setSelectedReceiptDeposit(dep)}
@@ -549,6 +574,23 @@ export default function App() {
             setIsDepositModalOpen={setIsFeeDepositModalOpen}
             preselectedStudentId={targetStudentForFee}
             initialActiveTab={targetFeesTab}
+            currentAdmin={currentAdmin}
+            onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+            onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+            onOpenAuthorizationSettings={() => setIsAuthorizationSettingsOpen(true)}
+          />
+        )}
+
+        {activeTab === 'disbursements' && (
+          <DisbursementsView
+            disbursements={disbursements}
+            deposits={deposits}
+            students={students}
+            authConfig={authConfig}
+            onAddDisbursement={handleAddDisbursement}
+            onUpdateDisbursement={handleUpdateDisbursement}
+            onDeleteDisbursement={handleDeleteDisbursement}
+            onViewVoucher={(disb) => setSelectedVoucherDisbursement(disb)}
             currentAdmin={currentAdmin}
             onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
             onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
@@ -585,6 +627,15 @@ export default function App() {
           authConfig={authConfig}
           onUpdateAuthConfig={handleSaveAuthConfig}
           onClose={() => setSelectedReceiptDeposit(null)}
+        />
+      )}
+
+      {selectedVoucherDisbursement && (
+        <DisbursementVoucherModal
+          disbursement={selectedVoucherDisbursement}
+          authConfig={authConfig}
+          onUpdateAuthConfig={handleSaveAuthConfig}
+          onClose={() => setSelectedVoucherDisbursement(null)}
         />
       )}
 

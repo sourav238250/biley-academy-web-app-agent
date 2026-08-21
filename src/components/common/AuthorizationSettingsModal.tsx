@@ -23,7 +23,7 @@ interface AuthorizationSettingsModalProps {
   onSaveAuthConfig: (config: InstitutionalAuthorizationConfig) => void;
   currentAdmin?: AdminUser | null;
   onUpdateCurrentAdmin?: (admin: AdminUser) => void;
-  defaultTab?: 'all' | 'accounts' | 'academic' | 'exams' | 'profile';
+  defaultTab?: 'all' | 'restrictions' | 'treasury' | 'accounts' | 'academic' | 'exams' | 'profile';
 }
 
 export const AuthorizationSettingsModal: React.FC<AuthorizationSettingsModalProps> = ({
@@ -35,7 +35,7 @@ export const AuthorizationSettingsModal: React.FC<AuthorizationSettingsModalProp
   onUpdateCurrentAdmin,
   defaultTab = 'all',
 }) => {
-  const [activeCategory, setActiveCategory] = useState<'all' | 'accounts' | 'academic' | 'exams' | 'profile'>(defaultTab);
+  const [activeCategory, setActiveCategory] = useState<'all' | 'restrictions' | 'treasury' | 'accounts' | 'academic' | 'exams' | 'profile'>(defaultTab);
   const [formData, setFormData] = useState<InstitutionalAuthorizationConfig>(authConfig || DEFAULT_AUTHORIZATION_CONFIG);
   
   // Profile state for active staff
@@ -65,7 +65,7 @@ export const AuthorizationSettingsModal: React.FC<AuthorizationSettingsModalProp
 
   if (!isOpen) return null;
 
-  const handleChange = (field: keyof InstitutionalAuthorizationConfig, value: string) => {
+  const handleChange = (field: keyof InstitutionalAuthorizationConfig, value: any) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -73,7 +73,7 @@ export const AuthorizationSettingsModal: React.FC<AuthorizationSettingsModalProp
   };
 
   const handleResetDefaults = () => {
-    if (window.confirm('Reset all authorization names and signatories to default academy configuration?')) {
+    if (window.confirm('Reset all authorization names, restrictions, and signatories to default academy configuration?')) {
       setFormData(DEFAULT_AUTHORIZATION_CONFIG);
     }
   };
@@ -122,7 +122,7 @@ export const AuthorizationSettingsModal: React.FC<AuthorizationSettingsModalProp
                 <span className="text-[10px] font-mono text-slate-400">Institutional Authority</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
-                Edit Authorization Names & Signatories
+                Policy Restrictions & Signatory Controls
               </h2>
             </div>
           </div>
@@ -148,7 +148,33 @@ export const AuthorizationSettingsModal: React.FC<AuthorizationSettingsModalProp
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            <span>All Signatories</span>
+            <span>All Controls</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveCategory('restrictions')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              activeCategory === 'restrictions'
+                ? 'bg-rose-700 text-white shadow-sm'
+                : 'text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-rose-300" />
+            <span>Admissions & Fee Restrictions</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveCategory('treasury')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              activeCategory === 'treasury'
+                ? 'bg-indigo-700 text-white shadow-sm'
+                : 'text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <CreditCard className="w-3.5 h-3.5 text-indigo-300" />
+            <span>Disbursement & Profit Targets</span>
           </button>
 
           <button
@@ -208,6 +234,158 @@ export const AuthorizationSettingsModal: React.FC<AuthorizationSettingsModalProp
 
         {/* Modal Form Body */}
         <form onSubmit={handleSave} className="overflow-y-auto p-6 space-y-6 flex-1 text-xs">
+          
+          {/* SECTION: Institutional Policy Restrictions (New Admission & Fee Deposit) */}
+          {(activeCategory === 'all' || activeCategory === 'restrictions') && (
+            <div className="bg-rose-50/80 border-2 border-rose-200 rounded-2xl p-5 space-y-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-rose-700" />
+                  <div>
+                    <h3 className="font-black text-rose-950 text-sm">
+                      Institutional Restrictions & Governance Locks
+                    </h3>
+                    <p className="text-[11px] text-rose-700">
+                      Enable or disable operational restrictions for student admissions and fee collections.
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 bg-rose-200 text-rose-900 rounded-lg font-bold text-[10px] uppercase">
+                  Director Authority
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Restriction 1: New Admission Lock */}
+                <div className="bg-white p-4 rounded-xl border border-rose-200 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-slate-900 text-xs block">Restrict New Student Admission</span>
+                      <span className="text-[11px] text-slate-500">Temporarily freeze new student registrations</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.isAdmissionLocked || false}
+                        onChange={(e) => handleChange('isAdmissionLocked', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                    </label>
+                  </div>
+
+                  {formData.isAdmissionLocked && (
+                    <div className="pt-2 border-t border-rose-100">
+                      <label className="block text-slate-700 font-bold mb-1">
+                        Admission Freeze Reason / Directive
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.admissionLockReason || ''}
+                        onChange={(e) => handleChange('admissionLockReason', e.target.value)}
+                        placeholder="e.g. Session Batch Capacity Reached (Director Order #BA-2026-DIR-08)"
+                        className="w-full px-3 py-2 bg-rose-50/50 border border-rose-200 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-rose-500"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Restriction 2: Fee Deposit Lock */}
+                <div className="bg-white p-4 rounded-xl border border-rose-200 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-slate-900 text-xs block">Restrict Fee Deposit Collections</span>
+                      <span className="text-[11px] text-slate-500">Lock cashier fee payments & new receipts</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.isFeeDepositLocked || false}
+                        onChange={(e) => handleChange('isFeeDepositLocked', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                    </label>
+                  </div>
+
+                  {formData.isFeeDepositLocked && (
+                    <div className="pt-2 border-t border-rose-100">
+                      <label className="block text-slate-700 font-bold mb-1">
+                        Fee Deposit Freeze Reason / Audit Window
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.feeDepositLockReason || ''}
+                        onChange={(e) => handleChange('feeDepositLockReason', e.target.value)}
+                        placeholder="e.g. Annual CA Financial Audit in Progress — Treasury Locked until Monday"
+                        className="w-full px-3 py-2 bg-rose-50/50 border border-rose-200 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-rose-500"
+                      />
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* SECTION: Disbursements & Profit Reserve Settings */}
+          {(activeCategory === 'all' || activeCategory === 'treasury') && (
+            <div className="bg-indigo-50/80 border border-indigo-200 rounded-2xl p-5 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-indigo-700" />
+                  <div>
+                    <h3 className="font-black text-indigo-950 text-sm">
+                      Treasury Disbursement Budget & Minimum Profit Reserves
+                    </h3>
+                    <p className="text-[11px] text-indigo-700">
+                      Set institutional budget caps and minimum profit headroom for ledger disbursements.
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 bg-indigo-200 text-indigo-900 rounded-lg font-bold text-[10px] uppercase">
+                  P&L Parameters
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-xl border border-indigo-200">
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Monthly Disbursement Budget Cap (₹ INR)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={5000}
+                    value={formData.monthlyDisbursementBudgetCap || 350000}
+                    onChange={(e) => handleChange('monthlyDisbursementBudgetCap', Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold font-mono text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Alert threshold when cumulative monthly disbursements across ledgers exceed this value.
+                  </p>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-indigo-200">
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Minimum Target Profit Reserve (₹ INR)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={5000}
+                    value={formData.minimumProfitReserveTarget || 100000}
+                    onChange={(e) => handleChange('minimumProfitReserveTarget', Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold font-mono text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Guaranteed profit buffer that must remain protected before approving non-essential asset purchases.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Active Admin Profile Section */}
           {(activeCategory === 'all' || activeCategory === 'profile') && currentAdmin && (

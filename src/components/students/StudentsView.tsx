@@ -27,6 +27,7 @@ import {
 } from '../../utils/academicUtils';
 import { evaluateSectionAuthorization, hasPermission } from '../../utils/auth';
 import { SectionAuthHeader } from '../common/SectionAuthHeader';
+import { RestrictionBanner } from '../common/RestrictionBanner';
 import confetti from 'canvas-confetti';
 import {
   UserPlus,
@@ -66,6 +67,7 @@ interface StudentsViewProps {
   deposits: FeeDeposit[];
   results?: ExamResult[];
   attendance?: AttendanceRecord[];
+  authConfig?: import('../../types').InstitutionalAuthorizationConfig;
   onAddStudent: (student: Student) => void;
   onUpdateStudent: (student: Student) => void;
   onDeleteStudent: (studentId: string) => void;
@@ -78,6 +80,7 @@ interface StudentsViewProps {
   currentAdmin?: AdminUser | null;
   onOpenAdminLogin?: () => void;
   onOpenPermissionsMatrix?: () => void;
+  onOpenAuthSettings?: () => void;
 }
 
 export const StudentsView: React.FC<StudentsViewProps> = ({
@@ -87,6 +90,7 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
   deposits,
   results = [],
   attendance = [],
+  authConfig,
   onAddStudent,
   onUpdateStudent,
   onDeleteStudent,
@@ -99,11 +103,13 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
   currentAdmin,
   onOpenAdminLogin,
   onOpenPermissionsMatrix,
+  onOpenAuthSettings,
 }) => {
   const auth = evaluateSectionAuthorization(currentAdmin, 'students');
   const canCollectFee = hasPermission(currentAdmin, 'FEE_COLLECTION_WRITE');
   const canDeleteStudent = hasPermission(currentAdmin, 'STUDENT_DELETE');
-  const canAdmitStudent = auth.canWrite && hasPermission(currentAdmin, 'STUDENT_ADMISSION_WRITE');
+  const isAdmissionLocked = authConfig?.isAdmissionLocked || false;
+  const canAdmitStudent = auth.canWrite && hasPermission(currentAdmin, 'STUDENT_ADMISSION_WRITE') && !isAdmissionLocked;
   const triggerFeeDeposit = onOpenFeeDepositModal || onDepositFee || (() => {});
   const triggerIdCard = onOpenIdCardModal || onViewIdCard || (() => {});
   const [searchQuery, setSearchQuery] = useState('');
@@ -410,6 +416,14 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
         onOpenPermissionsMatrix={onOpenPermissionsMatrix}
       />
 
+      {/* Institutional Policy Restriction Banner (if Admission locked) */}
+      <RestrictionBanner
+        type="admission"
+        authConfig={authConfig}
+        currentAdmin={currentAdmin}
+        onOpenSettings={onOpenAuthSettings}
+      />
+
       {/* Header & New Admission Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
         <div>
@@ -427,7 +441,12 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
           </p>
         </div>
         
-        {auth.canWrite ? (
+        {isAdmissionLocked ? (
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-rose-50 border border-rose-300 text-rose-800 rounded-xl text-xs font-bold shrink-0">
+            <Lock className="w-4 h-4 text-rose-600" />
+            <span>Admissions Restricted by Policy</span>
+          </div>
+        ) : auth.canWrite ? (
           <button
             onClick={handleOpenAdmission}
             id="student-admission-modal-btn"
