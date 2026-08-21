@@ -14,6 +14,7 @@ import {
   NavigationTab,
   QuestionBankItem,
   AssignmentSet,
+  InstitutionalAuthorizationConfig,
 } from '../../types';
 import { formatCurrency, computeStudentFeeSummary, CLASS_LEVELS } from '../../utils/academicUtils';
 import {
@@ -23,6 +24,7 @@ import {
   AppStateData,
 } from '../../utils/storage';
 import { PendingFeeAlertSection } from './PendingFeeAlertSection';
+import { ProfitLossModule } from './ProfitLossModule';
 import {
   Users,
   UserPlus,
@@ -70,6 +72,7 @@ interface DashboardViewProps {
   onViewReceipt: (deposit: FeeDeposit) => void;
   onViewReportCard?: (result: ExamResult) => void;
   currentAdmin?: AdminUser | null;
+  authConfig?: InstitutionalAuthorizationConfig;
   onOpenAdminLogin?: () => void;
   onOpenPermissionsMatrix?: () => void;
   onRestoreData?: (data: AppStateData) => void;
@@ -88,6 +91,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   attendance = [],
   questionBank = [],
   assignments = [],
+  authConfig,
   onNavigateTab,
   onNavigate,
   onOpenAdmissionModal,
@@ -438,6 +442,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           })}
         </div>
       </div>
+
+      {/* Institutional Profit & Loss Visualization Module (Recharts) */}
+      <ProfitLossModule
+        deposits={deposits}
+        disbursements={disbursements}
+        students={students}
+        authConfig={authConfig}
+        onNavigateTab={navigate}
+        onOpenFeeDepositModal={() => onOpenFeeDepositModal()}
+      />
 
       {/* Pending Fee Alert & Aging Defaulters Section */}
       <PendingFeeAlertSection

@@ -437,6 +437,7 @@ export default function App() {
             disbursements={disbursements}
             timetable={timetable}
             attendance={attendance}
+            authConfig={authConfig}
             onNavigateTab={setActiveTab}
             onNavigate={setActiveTab}
             onOpenAdmissionModal={handleQuickNewAdmission}
