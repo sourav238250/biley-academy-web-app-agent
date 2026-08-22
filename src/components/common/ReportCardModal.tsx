@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Exam, ExamResult, Student, InstitutionalAuthorizationConfig } from '../../types';
 import { DEFAULT_AUTHORIZATION_CONFIG } from '../../utils/storage';
+import { InstituteLogo } from './InstituteLogo';
 import {
   Printer,
   X,
@@ -202,15 +203,13 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
           {/* Top Academy Banner */}
           <div className="border-b-2 border-slate-900 pb-5 mb-6 text-center relative">
             <div className="flex items-center justify-center gap-3 mb-1">
-              <div className="w-12 h-12 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center shadow">
-                <GraduationCap className="w-7 h-7" />
-              </div>
+              <InstituteLogo size="lg" variant="rounded" withBorder={true} />
               <div className="text-left">
                 <h1 className="text-2xl font-black tracking-tight text-slate-950">
                   {sealName}
                 </h1>
                 <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-widest">
-                  Academic Progress & Evaluation Report (Class 5 - 12)
+                  Academic Progress & Evaluation Report • Since 2026 (Class 5 - 12)
                 </p>
               </div>
             </div>

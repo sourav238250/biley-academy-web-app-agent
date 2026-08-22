@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NavigationTab, AdminUser } from '../types';
+import { InstituteLogo } from './common/InstituteLogo';
 import {
   GraduationCap,
   Sparkles,
@@ -57,14 +58,12 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Logo & Institute Identity */}
           <div
             onClick={() => setActiveTab('dashboard')}
-            className="flex items-center gap-3 cursor-pointer select-none"
+            className="flex items-center gap-3 cursor-pointer select-none group"
           >
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-slate-950 flex items-center justify-center shadow-lg font-bold shrink-0">
-              <GraduationCap className="w-6 h-6 sm:w-7 sm:h-7" />
-            </div>
+            <InstituteLogo size="md" variant="rounded" withGlow={true} withBorder={true} />
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg sm:text-xl font-black tracking-tight text-white">
+                <span className="text-lg sm:text-xl font-black tracking-tight text-white group-hover:text-amber-300 transition-colors">
                   BILEY ACADEMY
                 </span>
                 <span className="hidden sm:inline-flex items-center gap-1 text-[10px] uppercase font-bold bg-amber-400/15 text-amber-300 px-2 py-0.5 rounded border border-amber-400/30">
@@ -72,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium hidden md:block">
-                Secondary & Senior Secondary Coaching ERP System
+                Secondary & Senior Secondary Coaching ERP System • Since 2026
               </p>
             </div>
           </div>

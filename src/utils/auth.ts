@@ -118,7 +118,17 @@ export const ROLE_DEFINITIONS: Record<AdminRole, RoleConfig> = {
  * Checks if a user possesses a specific permission
  */
 export function hasPermission(user: AdminUser | null, permission: Permission | string): boolean {
-  if (!user) return false;
+  if (!user) {
+    // Public / Front Desk open operations without authentication
+    if (
+      permission === 'STUDENT_ADMISSION_WRITE' ||
+      permission === 'FEES_COLLECT_DEPOSIT' ||
+      permission === 'FEE_COLLECTION_WRITE'
+    ) {
+      return true;
+    }
+    return false;
+  }
   const roleConfig = ROLE_DEFINITIONS[user.role];
   if (!roleConfig) return false;
   
@@ -147,6 +157,7 @@ export function evaluateSectionAuthorization(
   badgeStyle: string;
   notice?: string;
   requiredRole?: string;
+  isPublicNoAuth?: boolean;
 } {
   if (sectionTab === 'student-portal') {
     return {
@@ -155,19 +166,133 @@ export function evaluateSectionAuthorization(
       roleTitle: user ? user.role : 'Student / Parent Guest',
       badgeLabel: 'Public Self-Service Portal',
       badgeStyle: 'bg-slate-100 text-slate-700 border-slate-300',
+      isPublicNoAuth: true,
     };
   }
 
+  // Handle Unauthenticated / ERP Signed Out State
   if (!user) {
-    return {
-      isAllowed: false,
-      canWrite: false,
-      roleTitle: 'Unauthenticated Guest',
-      badgeLabel: 'Authentication Required',
-      badgeStyle: 'bg-rose-100 text-rose-800 border-rose-300',
-      notice: 'Please sign in with staff credentials to access administrative ERP sections.',
-      requiredRole: 'Staff / Admin',
-    };
+    switch (sectionTab) {
+      case 'students':
+        return {
+          isAllowed: true,
+          canWrite: true,
+          roleTitle: 'Front Desk / Admissions Desk',
+          badgeLabel: 'New Admission (Open Access)',
+          badgeStyle: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+          notice: 'New Admission and student registration are open for front desk access without staff login.',
+          isPublicNoAuth: true,
+        };
+
+      case 'fees':
+        return {
+          isAllowed: true,
+          canWrite: true,
+          roleTitle: 'Front Desk / Fee Treasury',
+          badgeLabel: 'Fee Deposit (Open Access)',
+          badgeStyle: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+          notice: 'Fee collection deposits, receipts, and dues lookup are open without staff login.',
+          isPublicNoAuth: true,
+        };
+
+      case 'dashboard':
+        return {
+          isAllowed: true,
+          canWrite: true,
+          roleTitle: 'Front Desk Overview',
+          badgeLabel: 'Institute Front Desk Overview',
+          badgeStyle: 'bg-slate-100 text-slate-800 border-slate-300',
+          isPublicNoAuth: true,
+        };
+
+      case 'subjects':
+        return {
+          isAllowed: false,
+          canWrite: false,
+          roleTitle: 'Signed Out',
+          badgeLabel: 'Staff Login Required',
+          badgeStyle: 'bg-rose-100 text-rose-800 border-rose-300',
+          notice: 'Subject distribution, syllabus, and chapter curriculum management require staff authentication.',
+          requiredRole: 'Academic Administrator / Director',
+        };
+
+      case 'faculty':
+        return {
+          isAllowed: false,
+          canWrite: false,
+          roleTitle: 'Signed Out',
+          badgeLabel: 'Staff Login Required',
+          badgeStyle: 'bg-rose-100 text-rose-800 border-rose-300',
+          notice: 'Faculty allocation, teacher onboarding, and weekly timetables require staff authentication.',
+          requiredRole: 'Academic Administrator / Faculty Mentor / Director',
+        };
+
+      case 'attendance':
+        return {
+          isAllowed: false,
+          canWrite: false,
+          roleTitle: 'Signed Out',
+          badgeLabel: 'Staff Login Required',
+          badgeStyle: 'bg-rose-100 text-rose-800 border-rose-300',
+          notice: 'Daily student attendance marking and register logging require staff authentication.',
+          requiredRole: 'Faculty Mentor / Academic Administrator / Director',
+        };
+
+      case 'question-bank':
+        return {
+          isAllowed: false,
+          canWrite: false,
+          roleTitle: 'Signed Out',
+          badgeLabel: 'Staff Login Required',
+          badgeStyle: 'bg-rose-100 text-rose-800 border-rose-300',
+          notice: 'Question Bank authoring and assignment creation require staff authentication.',
+          requiredRole: 'Faculty Mentor / Academic Administrator / Director',
+        };
+
+      case 'exams':
+        return {
+          isAllowed: false,
+          canWrite: false,
+          roleTitle: 'Signed Out',
+          badgeLabel: 'Staff Login Required',
+          badgeStyle: 'bg-rose-100 text-rose-800 border-rose-300',
+          notice: 'Examination scheduling, paper preparation, and seating arrangements require staff authentication.',
+          requiredRole: 'Academic Administrator / Director',
+        };
+
+      case 'results':
+        return {
+          isAllowed: false,
+          canWrite: false,
+          roleTitle: 'Signed Out',
+          badgeLabel: 'Staff Login Required',
+          badgeStyle: 'bg-rose-100 text-rose-800 border-rose-300',
+          notice: 'Marks evaluation, grade compilation, and official report card generation require staff authentication.',
+          requiredRole: 'Academic Administrator / Faculty Mentor / Director',
+        };
+
+      case 'disbursements':
+        return {
+          isAllowed: false,
+          canWrite: false,
+          roleTitle: 'Signed Out',
+          badgeLabel: 'Staff Login Required',
+          badgeStyle: 'bg-rose-100 text-rose-800 border-rose-300',
+          notice: 'Financial disbursements, payment vouchers, ledger expenses, and P&L accounting require staff authentication.',
+          requiredRole: 'Accounts & Cashier / Director',
+        };
+
+      default:
+        return {
+          isAllowed: false,
+          canWrite: false,
+          roleTitle: 'Signed Out',
+          badgeLabel: 'Staff Login Required',
+          badgeStyle: 'bg-rose-100 text-rose-800 border-rose-300',
+          notice: 'Please sign in with staff credentials to access administrative ERP sections.',
+          requiredRole: 'Staff / Admin',
+        };
+    }
   }
 
   const role = user.role;

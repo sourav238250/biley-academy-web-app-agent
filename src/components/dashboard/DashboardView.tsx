@@ -23,6 +23,7 @@ import {
   getEstimatedStorageUsage,
   AppStateData,
 } from '../../utils/storage';
+import { InstituteLogo } from '../common/InstituteLogo';
 import { PendingFeeAlertSection } from './PendingFeeAlertSection';
 import { ProfitLossModule } from './ProfitLossModule';
 import {
@@ -227,22 +228,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-800 relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-amber-500/10 via-transparent to-transparent pointer-events-none"></div>
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                {currentAdmin ? `Logged In: ${currentAdmin.role}` : 'Staff & Admin ERP System'}
-              </span>
-              <span className="text-xs text-slate-300">Session 2025–2026</span>
+          <div className="flex items-start gap-4">
+            <InstituteLogo size="xl" variant="rounded" withGlow={true} withBorder={true} customClass="shrink-0 hidden sm:inline-flex" />
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {currentAdmin ? `Logged In: ${currentAdmin.role}` : 'Staff & Admin ERP System'}
+                </span>
+                <span className="text-xs text-slate-300">Session 2025–2026 • Since 2026</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                {currentAdmin ? `Welcome back, ${currentAdmin.name}` : 'Biley Academy Management'}
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
+                {currentAdmin
+                  ? `${currentAdmin.designation} • Authorized management of Admissions, Subjects, Faculty, Exams, Results and Student Fee Collections.`
+                  : 'Centralized coaching operations across Classes 1 to 12. Monitor student enrollments, faculty lectures, exam report cards, and fee treasury.'}
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              {currentAdmin ? `Welcome back, ${currentAdmin.name}` : 'Biley Academy Management'}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-              {currentAdmin
-                ? `${currentAdmin.designation} • Authorized management of Admissions, Subjects, Faculty, Exams, Results and Student Fee Collections.`
-                : 'Centralized coaching operations across Classes 1 to 12. Monitor student enrollments, faculty lectures, exam report cards, and fee treasury.'}
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

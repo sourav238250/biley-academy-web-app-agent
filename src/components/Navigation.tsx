@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationTab } from '../types';
+import { NavigationTab, AdminUser } from '../types';
 import {
   LayoutDashboard,
   UserPlus,
@@ -14,11 +14,13 @@ import {
   FileCheck,
   Receipt,
   Wallet,
+  Lock,
 } from 'lucide-react';
 
 interface NavigationProps {
   activeTab: NavigationTab;
   setActiveTab: (tab: NavigationTab) => void;
+  currentAdmin?: AdminUser | null;
   studentCount?: number;
   facultyCount?: number;
   examCount?: number;
@@ -35,6 +37,7 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({
   activeTab,
   setActiveTab,
+  currentAdmin,
   studentCount,
   pendingDuesCount,
   upcomingExamsCount,
@@ -43,7 +46,17 @@ export const Navigation: React.FC<NavigationProps> = ({
   assignmentCount,
   disbursementsCount,
 }) => {
-  const tabs: { id: NavigationTab; label: string; icon: React.FC<any>; badge?: string | number; badgeColor?: string }[] = [
+  const isSignedOut = !currentAdmin;
+
+  const tabs: {
+    id: NavigationTab;
+    label: string;
+    icon: React.FC<any>;
+    badge?: string | number;
+    badgeColor?: string;
+    requiresAuth?: boolean;
+    openBadge?: string;
+  }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     {
       id: 'students',
@@ -51,15 +64,17 @@ export const Navigation: React.FC<NavigationProps> = ({
       icon: UserPlus,
       badge: studentCount,
       badgeColor: 'bg-slate-700',
+      openBadge: isSignedOut ? 'Open' : undefined,
     },
-    { id: 'subjects', label: 'Subject Distribution', icon: BookOpen },
-    { id: 'faculty', label: 'Faculty Allocation', icon: Users },
+    { id: 'subjects', label: 'Subject Distribution', icon: BookOpen, requiresAuth: true },
+    { id: 'faculty', label: 'Faculty Allocation', icon: Users, requiresAuth: true },
     {
       id: 'attendance',
       label: 'Daily Attendance',
       icon: CalendarCheck,
       badge: attendanceRecordsCount && attendanceRecordsCount > 0 ? `${attendanceRecordsCount}` : undefined,
       badgeColor: 'bg-emerald-700',
+      requiresAuth: true,
     },
     {
       id: 'question-bank',
@@ -67,6 +82,7 @@ export const Navigation: React.FC<NavigationProps> = ({
       icon: HelpCircle,
       badge: questionBankCount && questionBankCount > 0 ? questionBankCount : undefined,
       badgeColor: 'bg-amber-600',
+      requiresAuth: true,
     },
     {
       id: 'exams',
@@ -74,14 +90,16 @@ export const Navigation: React.FC<NavigationProps> = ({
       icon: FileCheck2,
       badge: upcomingExamsCount && upcomingExamsCount > 0 ? upcomingExamsCount : undefined,
       badgeColor: 'bg-blue-600',
+      requiresAuth: true,
     },
-    { id: 'results', label: 'Results & Report Cards', icon: Award },
+    { id: 'results', label: 'Results & Report Cards', icon: Award, requiresAuth: true },
     {
       id: 'fees',
       label: 'Fee Deposit & Receipts',
       icon: CreditCard,
       badge: pendingDuesCount && pendingDuesCount > 0 ? `${pendingDuesCount} Dues` : undefined,
       badgeColor: 'bg-amber-600',
+      openBadge: isSignedOut ? 'Open' : undefined,
     },
     {
       id: 'disbursements',
@@ -89,6 +107,7 @@ export const Navigation: React.FC<NavigationProps> = ({
       icon: Wallet,
       badge: disbursementsCount && disbursementsCount > 0 ? `${disbursementsCount}` : undefined,
       badgeColor: 'bg-indigo-700',
+      requiresAuth: true,
     },
     {
       id: 'student-portal',
@@ -104,6 +123,8 @@ export const Navigation: React.FC<NavigationProps> = ({
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+            const isLocked = isSignedOut && tab.requiresAuth;
+
             return (
               <button
                 key={tab.id}
@@ -112,11 +133,28 @@ export const Navigation: React.FC<NavigationProps> = ({
                 className={`flex items-center gap-2 px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap transition-all cursor-pointer ${
                   isActive
                     ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    : isLocked
+                    ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-amber-400' : isLocked ? 'text-slate-400' : 'text-slate-500'}`} />
                 <span>{tab.label}</span>
+
+                {/* Lock icon for protected administrative tabs in signed out state */}
+                {isLocked && (
+                  <span className="flex items-center text-slate-400 ml-0.5" title="Requires Staff Sign In">
+                    <Lock className="w-3 h-3" />
+                  </span>
+                )}
+
+                {/* Open tag for unauthenticated accessible tabs */}
+                {tab.openBadge && !tab.badge && (
+                  <span className="ml-1 text-[9px] font-bold text-emerald-700 bg-emerald-100/90 border border-emerald-300/60 px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                    {tab.openBadge}
+                  </span>
+                )}
+
                 {tab.badge !== undefined && (
                   <span
                     className={`ml-1 text-[10px] font-bold text-white px-1.5 py-0.5 rounded-full ${

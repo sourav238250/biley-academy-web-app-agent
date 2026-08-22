@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AdminUser, AdminRole } from '../../types';
+import { InstituteLogo } from '../common/InstituteLogo';
 import {
   GraduationCap,
   Lock,
@@ -150,15 +151,13 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           )}
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center shadow-lg font-black text-xl shrink-0">
-              <Lock className="w-6 h-6" />
-            </div>
+            <InstituteLogo size="lg" variant="rounded" withGlow={true} withBorder={true} />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] uppercase font-bold tracking-widest bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded">
                   Secure ERP Access
                 </span>
-                <span className="text-[11px] text-slate-400">Portal Security</span>
+                <span className="text-[11px] text-amber-400/80 font-medium">Since 2026</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
                 Biley Academy Staff Login

@@ -33,6 +33,8 @@ import { Navigation } from './components/Navigation';
 import { AdminLoginModal, DEMO_ADMIN_ACCOUNTS } from './components/auth/AdminLoginModal';
 import { PermissionsMatrixModal } from './components/common/PermissionsMatrixModal';
 import { AuthorizationSettingsModal } from './components/common/AuthorizationSettingsModal';
+import { AccessDeniedGate } from './components/common/AccessDeniedGate';
+import { evaluateSectionAuthorization } from './utils/auth';
 
 // View modules
 import { DashboardView } from './components/dashboard/DashboardView';
@@ -412,6 +414,7 @@ export default function App() {
       <Navigation
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        currentAdmin={currentAdmin}
         studentCount={students.length}
         facultyCount={faculty.length}
         examCount={exams.length}
@@ -474,93 +477,165 @@ export default function App() {
         )}
 
         {activeTab === 'subjects' && (
-          <SubjectsView
-            subjects={subjects}
-            faculty={faculty}
-            onAddSubject={handleAddSubject}
-            onUpdateSubject={handleUpdateSubject}
-            onDeleteSubject={handleDeleteSubject}
-            currentAdmin={currentAdmin}
-            onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
-            onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
-          />
+          !currentAdmin ? (
+            <AccessDeniedGate
+              sectionName="Subject Distribution & Syllabus"
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onNavigateToPortal={() => setActiveTab('student-portal')}
+              onNavigateToTab={setActiveTab}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+              requiredRoleHint={evaluateSectionAuthorization(null, 'subjects').requiredRole}
+              onDirectLogin={handleLoginSuccess}
+            />
+          ) : (
+            <SubjectsView
+              subjects={subjects}
+              faculty={faculty}
+              onAddSubject={handleAddSubject}
+              onUpdateSubject={handleUpdateSubject}
+              onDeleteSubject={handleDeleteSubject}
+              currentAdmin={currentAdmin}
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+            />
+          )
         )}
 
         {activeTab === 'faculty' && (
-          <FacultyView
-            faculty={faculty}
-            subjects={subjects}
-            timetable={timetable}
-            onAddFaculty={handleAddFaculty}
-            onUpdateFaculty={handleUpdateFaculty}
-            onDeleteFaculty={handleDeleteFaculty}
-            onAddTimetableSlot={handleAddTimetableSlot}
-            onUpdateTimetableSlot={handleUpdateTimetableSlot}
-            onDeleteTimetableSlot={handleDeleteTimetableSlot}
-            currentAdmin={currentAdmin}
-            onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
-            onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
-          />
+          !currentAdmin ? (
+            <AccessDeniedGate
+              sectionName="Faculty Allocation & Timetable"
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onNavigateToPortal={() => setActiveTab('student-portal')}
+              onNavigateToTab={setActiveTab}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+              requiredRoleHint={evaluateSectionAuthorization(null, 'faculty').requiredRole}
+              onDirectLogin={handleLoginSuccess}
+            />
+          ) : (
+            <FacultyView
+              faculty={faculty}
+              subjects={subjects}
+              timetable={timetable}
+              onAddFaculty={handleAddFaculty}
+              onUpdateFaculty={handleUpdateFaculty}
+              onDeleteFaculty={handleDeleteFaculty}
+              onAddTimetableSlot={handleAddTimetableSlot}
+              onUpdateTimetableSlot={handleUpdateTimetableSlot}
+              onDeleteTimetableSlot={handleDeleteTimetableSlot}
+              currentAdmin={currentAdmin}
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+            />
+          )
         )}
 
         {activeTab === 'attendance' && (
-          <AttendanceView
-            students={students}
-            subjects={subjects}
-            faculty={faculty}
-            attendance={attendance}
-            onSaveAttendance={handleSaveAttendance}
-            currentAdmin={currentAdmin}
-            onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
-            onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
-          />
+          !currentAdmin ? (
+            <AccessDeniedGate
+              sectionName="Daily Student Attendance Register"
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onNavigateToPortal={() => setActiveTab('student-portal')}
+              onNavigateToTab={setActiveTab}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+              requiredRoleHint={evaluateSectionAuthorization(null, 'attendance').requiredRole}
+              onDirectLogin={handleLoginSuccess}
+            />
+          ) : (
+            <AttendanceView
+              students={students}
+              subjects={subjects}
+              faculty={faculty}
+              attendance={attendance}
+              onSaveAttendance={handleSaveAttendance}
+              currentAdmin={currentAdmin}
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+            />
+          )
         )}
 
         {activeTab === 'question-bank' && (
-          <QuestionBankView
-            questionBank={questionBank}
-            assignments={assignments}
-            subjects={subjects}
-            faculty={faculty}
-            onSaveQuestion={handleSaveQuestion}
-            onDeleteQuestion={handleDeleteQuestion}
-            onSaveAssignment={handleSaveAssignment}
-            onDeleteAssignment={handleDeleteAssignment}
-            currentAdmin={currentAdmin}
-            onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
-            onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
-          />
+          !currentAdmin ? (
+            <AccessDeniedGate
+              sectionName="Question Bank & Homework Assignments"
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onNavigateToPortal={() => setActiveTab('student-portal')}
+              onNavigateToTab={setActiveTab}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+              requiredRoleHint={evaluateSectionAuthorization(null, 'question-bank').requiredRole}
+              onDirectLogin={handleLoginSuccess}
+            />
+          ) : (
+            <QuestionBankView
+              questionBank={questionBank}
+              assignments={assignments}
+              subjects={subjects}
+              faculty={faculty}
+              onSaveQuestion={handleSaveQuestion}
+              onDeleteQuestion={handleDeleteQuestion}
+              onSaveAssignment={handleSaveAssignment}
+              onDeleteAssignment={handleDeleteAssignment}
+              currentAdmin={currentAdmin}
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+            />
+          )
         )}
 
         {activeTab === 'exams' && (
-          <ExamsView
-            exams={exams}
-            subjects={subjects}
-            onAddExam={handleAddExam}
-            onUpdateExam={handleUpdateExam}
-            onDeleteExam={handleDeleteExam}
-            onNavigateToResults={handleNavigateToExamResults}
-            currentAdmin={currentAdmin}
-            onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
-            onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
-          />
+          !currentAdmin ? (
+            <AccessDeniedGate
+              sectionName="Examination Management & Schedules"
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onNavigateToPortal={() => setActiveTab('student-portal')}
+              onNavigateToTab={setActiveTab}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+              requiredRoleHint={evaluateSectionAuthorization(null, 'exams').requiredRole}
+              onDirectLogin={handleLoginSuccess}
+            />
+          ) : (
+            <ExamsView
+              exams={exams}
+              subjects={subjects}
+              onAddExam={handleAddExam}
+              onUpdateExam={handleUpdateExam}
+              onDeleteExam={handleDeleteExam}
+              onNavigateToResults={handleNavigateToExamResults}
+              currentAdmin={currentAdmin}
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+            />
+          )
         )}
 
         {activeTab === 'results' && (
-          <ResultsView
-            exams={exams}
-            results={results}
-            students={students}
-            subjects={subjects}
-            onAddOrUpdateResult={handleAddOrUpdateResult}
-            onDeleteResult={handleDeleteResult}
-            onViewReportCard={(res) => setSelectedReportCardResult(res)}
-            initialSelectedExamId={targetExamForResults}
-            currentAdmin={currentAdmin}
-            onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
-            onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
-            onOpenAuthorizationSettings={() => setIsAuthorizationSettingsOpen(true)}
-          />
+          !currentAdmin ? (
+            <AccessDeniedGate
+              sectionName="Marks Entry & Student Report Cards"
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onNavigateToPortal={() => setActiveTab('student-portal')}
+              onNavigateToTab={setActiveTab}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+              requiredRoleHint={evaluateSectionAuthorization(null, 'results').requiredRole}
+              onDirectLogin={handleLoginSuccess}
+            />
+          ) : (
+            <ResultsView
+              exams={exams}
+              results={results}
+              students={students}
+              subjects={subjects}
+              onAddOrUpdateResult={handleAddOrUpdateResult}
+              onDeleteResult={handleDeleteResult}
+              onViewReportCard={(res) => setSelectedReportCardResult(res)}
+              initialSelectedExamId={targetExamForResults}
+              currentAdmin={currentAdmin}
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+              onOpenAuthorizationSettings={() => setIsAuthorizationSettingsOpen(true)}
+            />
+          )
         )}
 
         {activeTab === 'fees' && (
@@ -583,20 +658,32 @@ export default function App() {
         )}
 
         {activeTab === 'disbursements' && (
-          <DisbursementsView
-            disbursements={disbursements}
-            deposits={deposits}
-            students={students}
-            authConfig={authConfig}
-            onAddDisbursement={handleAddDisbursement}
-            onUpdateDisbursement={handleUpdateDisbursement}
-            onDeleteDisbursement={handleDeleteDisbursement}
-            onViewVoucher={(disb) => setSelectedVoucherDisbursement(disb)}
-            currentAdmin={currentAdmin}
-            onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
-            onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
-            onOpenAuthorizationSettings={() => setIsAuthorizationSettingsOpen(true)}
-          />
+          !currentAdmin ? (
+            <AccessDeniedGate
+              sectionName="Institutional Disbursements & P&L Treasury"
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onNavigateToPortal={() => setActiveTab('student-portal')}
+              onNavigateToTab={setActiveTab}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+              requiredRoleHint={evaluateSectionAuthorization(null, 'disbursements').requiredRole}
+              onDirectLogin={handleLoginSuccess}
+            />
+          ) : (
+            <DisbursementsView
+              disbursements={disbursements}
+              deposits={deposits}
+              students={students}
+              authConfig={authConfig}
+              onAddDisbursement={handleAddDisbursement}
+              onUpdateDisbursement={handleUpdateDisbursement}
+              onDeleteDisbursement={handleDeleteDisbursement}
+              onViewVoucher={(disb) => setSelectedVoucherDisbursement(disb)}
+              currentAdmin={currentAdmin}
+              onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+              onOpenPermissionsMatrix={() => setIsPermissionsMatrixOpen(true)}
+              onOpenAuthorizationSettings={() => setIsAuthorizationSettingsOpen(true)}
+            />
+          )
         )}
 
         {activeTab === 'student-portal' && (

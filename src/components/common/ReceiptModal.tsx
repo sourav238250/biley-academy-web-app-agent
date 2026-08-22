@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FeeDeposit, Student, InstitutionalAuthorizationConfig } from '../../types';
 import { formatCurrency } from '../../utils/academicUtils';
 import { DEFAULT_AUTHORIZATION_CONFIG } from '../../utils/storage';
+import { InstituteLogo } from './InstituteLogo';
 import {
   Printer,
   X,
@@ -191,16 +192,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="border-b-2 border-emerald-800/20 pb-6 mb-6">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center shadow-md">
-                  <GraduationCap className="w-8 h-8" />
-                </div>
+                <InstituteLogo size="lg" variant="rounded" withBorder={true} />
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-2xl font-bold text-slate-950 tracking-tight">
                       {authConfig.sealInstitutionName || 'BILEY ACADEMY'}
                     </h1>
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      Est. 2018
+                    <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Since 2026
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 font-medium">
