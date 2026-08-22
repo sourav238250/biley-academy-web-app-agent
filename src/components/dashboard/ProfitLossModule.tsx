@@ -203,85 +203,215 @@ export const ProfitLossModule: React.FC<ProfitLossModuleProps> = ({
       ? (pnlSummary.totalDisbursed / pnlSummary.grossRevenue) * 100
       : 0;
 
-  // Custom Recharts Tooltip for Timeline
+  // Custom Recharts Tooltip for Cashflow Timeline Chart
   const CustomTimelineTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       const net = data.netProfit;
       const isPositive = net >= 0;
+      const avgDeposit = data.depositCount > 0 ? Math.round(data.deposits / data.depositCount) : 0;
+      const avgDisbursed = data.disbursementCount > 0 ? Math.round(data.disbursements / data.disbursementCount) : 0;
+      const retentionPer100 = data.deposits > 0 ? Math.max(0, Math.round((net / data.deposits) * 100)) : 0;
+      const expenseShareOfInflow = data.deposits > 0 ? ((data.disbursements / data.deposits) * 100).toFixed(1) : '0.0';
 
       return (
-        <div className="bg-slate-900/95 text-white p-3.5 rounded-xl shadow-2xl border border-slate-700 text-xs space-y-2 backdrop-blur-md min-w-[200px]">
-          <div className="flex items-center justify-between border-b border-slate-700 pb-1.5">
-            <span className="font-bold text-amber-400">{data.monthLabel}</span>
-            <span className="text-[10px] text-slate-400 font-mono">Period Overview</span>
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-emerald-400 font-medium flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                Gross Inflow (Fees):
-              </span>
-              <span className="font-mono font-bold">{formatCurrency(data.deposits)}</span>
+        <div className="bg-slate-900/98 text-white p-4 rounded-2xl shadow-2xl border border-slate-700/80 text-xs space-y-2.5 backdrop-blur-xl min-w-[260px] max-w-xs transition-all pointer-events-none select-none z-50">
+          
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-slate-700/80 pb-2">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-black text-amber-300 text-sm">{data.monthLabel}</span>
             </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-rose-400 font-medium flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                Disbursements (Outflow):
-              </span>
-              <span className="font-mono font-bold">{formatCurrency(data.disbursements)}</span>
-            </div>
-          </div>
-
-          <div className="pt-1.5 border-t border-slate-700/80 flex items-center justify-between">
-            <span className="text-slate-300 font-bold">Net Institutional Growth:</span>
             <span
-              className={`font-mono font-black ${
-                isPositive ? 'text-emerald-400' : 'text-rose-400'
+              className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                isPositive
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
               }`}
             >
-              {formatCurrency(net)}
+              {isPositive ? '• Net Surplus' : '• Deficit'}
             </span>
           </div>
 
-          <div className="text-[10px] text-slate-400 text-right">
-            Profit Margin: <strong className="text-white">{data.margin}%</strong>
+          {/* Inflow & Outflow Breakdown */}
+          <div className="space-y-2 pt-0.5">
+            {/* Gross Fee Deposits */}
+            <div className="bg-slate-800/80 p-2 rounded-xl border border-slate-700/60">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                  Gross Fee Inflow:
+                </span>
+                <span className="font-mono font-black text-white text-xs">
+                  {formatCurrency(data.deposits)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1 pl-3.5">
+                <span>{data.depositCount} fee receipt{data.depositCount !== 1 ? 's' : ''}</span>
+                <span>Avg: <strong className="text-slate-300 font-mono">{formatCurrency(avgDeposit)}</strong></span>
+              </div>
+            </div>
+
+            {/* Total Disbursements */}
+            <div className="bg-slate-800/80 p-2 rounded-xl border border-slate-700/60">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-rose-400 font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                  Disbursements Outflow:
+                </span>
+                <span className="font-mono font-black text-white text-xs">
+                  {formatCurrency(data.disbursements)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1 pl-3.5">
+                <span>{data.disbursementCount} voucher{data.disbursementCount !== 1 ? 's' : ''}</span>
+                <span>Avg: <strong className="text-slate-300 font-mono">{formatCurrency(avgDisbursed)}</strong></span>
+              </div>
+            </div>
           </div>
+
+          {/* Net Growth & Margin Summary */}
+          <div className="pt-2 border-t border-slate-700/80 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-300 font-bold text-xs flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                Net Institutional Growth:
+              </span>
+              <span
+                className={`font-mono font-black text-sm ${
+                  isPositive ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+              >
+                {isPositive ? '+' : ''}{formatCurrency(net)}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-[10px] bg-slate-950/60 p-1.5 rounded-lg border border-slate-800">
+              <div className="text-slate-400">
+                Operating Margin: <strong className="text-white font-mono">{data.margin}%</strong>
+              </div>
+              <div className="text-right text-slate-400">
+                Outflow: <strong className="text-rose-300 font-mono">{expenseShareOfInflow}%</strong> of fees
+              </div>
+            </div>
+          </div>
+
         </div>
       );
     }
     return null;
   };
 
-  // Custom Recharts Tooltip for Ledger Pie
+  // Custom Recharts Tooltip for Ledger Pie/Donut Chart
   const CustomLedgerTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
+      const def = LEDGER_DEFINITIONS[data.name as DisbursementLedgerCategory];
+      const avgVoucher = data.count > 0 ? Math.round(data.value / data.count) : 0;
+
       return (
-        <div className="bg-slate-900/95 text-white p-3 rounded-xl shadow-2xl border border-slate-700 text-xs space-y-1.5 backdrop-blur-md min-w-[180px]">
-          <div className="flex items-center justify-between border-b border-slate-700 pb-1">
-            <span className="font-bold text-white flex items-center gap-1.5">
+        <div className="bg-slate-900/98 text-white p-4 rounded-2xl shadow-2xl border border-slate-700/80 text-xs space-y-2.5 backdrop-blur-xl min-w-[250px] max-w-xs transition-all pointer-events-none select-none z-50">
+          
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-slate-700/80 pb-2">
+            <span className="font-bold text-white text-xs flex items-center gap-2">
               <span
-                className="w-2.5 h-2.5 rounded-full"
+                className="w-3 h-3 rounded-full shrink-0 shadow-xs"
                 style={{ backgroundColor: data.color }}
               ></span>
-              {data.name} Ledger
+              <span className="truncate">{data.name} Ledger</span>
             </span>
-            <span className="text-[10px] text-slate-400">{data.count} txns</span>
+            <span className="text-[10px] font-mono font-bold bg-slate-800 text-amber-300 px-2 py-0.5 rounded-md border border-slate-700">
+              {data.count} voucher{data.count !== 1 ? 's' : ''}
+            </span>
           </div>
+
+          {/* Description snippet if available */}
+          {def && (
+            <p className="text-[10px] text-slate-300 leading-tight">
+              {def.title}: <span className="text-slate-400">{def.description}</span>
+            </p>
+          )}
+
+          {/* Financial Figures */}
+          <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/60 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 text-[11px]">Total Realized Outflow:</span>
+              <span className="font-mono font-black text-amber-300 text-sm">
+                {formatCurrency(data.value)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-700/50">
+              <span>Avg per voucher:</span>
+              <span className="font-mono font-bold text-slate-200">
+                {formatCurrency(avgVoucher)}
+              </span>
+            </div>
+          </div>
+
+          {/* Proportions */}
+          <div className="grid grid-cols-2 gap-2 text-[10px]">
+            <div className="bg-slate-800/50 p-1.5 rounded-lg border border-slate-700/40">
+              <span className="text-slate-400 block">Share of Outflow</span>
+              <span className="font-mono font-bold text-white text-xs">
+                {data.percentage.toFixed(1)}%
+              </span>
+            </div>
+            <div className="bg-slate-800/50 p-1.5 rounded-lg border border-slate-700/40 text-right">
+              <span className="text-slate-400 block">Share of Fee Revenue</span>
+              <span className="font-mono font-bold text-emerald-400 text-xs">
+                {data.revenuePercentage.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Custom Recharts Tooltip for Ledger Comparative Bar Chart
+  const CustomLedgerBarTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const def = LEDGER_DEFINITIONS[data.ledger as DisbursementLedgerCategory];
+      const avgAmt = data.transactionCount > 0 ? Math.round(data.totalAmount / data.transactionCount) : 0;
+
+      return (
+        <div className="bg-slate-900/98 text-white p-3.5 rounded-2xl shadow-2xl border border-slate-700/80 text-xs space-y-2 backdrop-blur-xl min-w-[240px] max-w-xs transition-all pointer-events-none select-none z-50">
+          <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+            <span className="font-bold text-white text-xs flex items-center gap-1.5">
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: LEDGER_COLORS[data.ledger as DisbursementLedgerCategory] || '#64748b' }}
+              ></span>
+              {data.ledger} Head
+            </span>
+            <span className="text-[10px] text-amber-300 font-mono font-bold">
+              {data.transactionCount} vouchers
+            </span>
+          </div>
+
           <div className="flex items-center justify-between">
-            <span className="text-slate-300">Total Disbursed:</span>
-            <span className="font-mono font-bold text-amber-300">{formatCurrency(data.value)}</span>
+            <span className="text-slate-400">Total Spent:</span>
+            <span className="font-mono font-black text-amber-300 text-sm">
+              {formatCurrency(data.totalAmount)}
+            </span>
           </div>
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Share of Outflow:</span>
-            <span className="font-bold text-white">{data.percentage.toFixed(1)}%</span>
+
+          <div className="flex items-center justify-between text-[11px] text-slate-300">
+            <span>Share of Total Outflow:</span>
+            <span className="font-mono font-bold text-white">
+              {data.percentageOfTotalExpense.toFixed(1)}%
+            </span>
           </div>
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Share of Revenue:</span>
-            <span className="font-bold text-emerald-400">{data.revenuePercentage.toFixed(1)}%</span>
+
+          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-700/60">
+            <span>Avg Voucher:</span>
+            <span className="font-mono font-bold text-slate-200">{formatCurrency(avgAmt)}</span>
           </div>
         </div>
       );
@@ -555,7 +685,7 @@ export const ProfitLossModule: React.FC<ProfitLossModuleProps> = ({
           {(selectedView === 'split' || selectedView === 'ledgers') && (
             <div
               className={`space-y-3 ${
-                selectedView === 'split' ? 'lg:col-span-5' : 'w-full'
+                selectedView === 'split' ? 'lg:col-span-5' : selectedView === 'ledgers' ? 'lg:col-span-6' : 'w-full'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -666,6 +796,65 @@ export const ProfitLossModule: React.FC<ProfitLossModuleProps> = ({
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Additional Comparative Bar Chart when in 'ledgers' View Mode */}
+          {selectedView === 'ledgers' && (
+            <div className="space-y-3 lg:col-span-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-slate-600" />
+                    <span>Ledger Outflow Ranking</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Expenditure volume ranked across institutional expense heads
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 min-h-[288px] sm:min-h-[320px] flex flex-col justify-center">
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart
+                    data={pnlSummary.ledgerBreakdown.filter((l) => l.totalAmount > 0)}
+                    layout="vertical"
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 10, fill: '#64748b' }}
+                      tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      dataKey="ledger"
+                      type="category"
+                      tick={{ fontSize: 11, fill: '#334155', fontWeight: 600 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={80}
+                    />
+                    <Tooltip content={<CustomLedgerBarTooltip />} />
+                    <Bar
+                      dataKey="totalAmount"
+                      radius={[0, 6, 6, 0]}
+                      maxBarSize={20}
+                    >
+                      {pnlSummary.ledgerBreakdown
+                        .filter((l) => l.totalAmount > 0)
+                        .map((entry, index) => (
+                          <Cell
+                            key={`bar-${index}`}
+                            fill={LEDGER_COLORS[entry.ledger] || '#64748b'}
+                          />
+                        ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           )}
